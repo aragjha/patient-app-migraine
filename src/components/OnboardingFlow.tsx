@@ -1,11 +1,26 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import SplashScreen from "@/components/SplashScreen";
 import OnboardingQuestion from "@/components/OnboardingQuestion";
 import GratificationScreen from "@/components/GratificationScreen";
+import MigraineOnboarding from "@/components/MigraineOnboarding";
+import ValuePropScreens from "@/components/ValuePropScreens";
 
-// Onboarding questions organized by phase
-const onboardingPhases = [
+export type Diagnosis = "migraine" | "parkinsons";
+
+// Diagnosis selection question (shown first)
+const diagnosisQuestion = {
+  id: "diagnosis",
+  title: "What is your diagnosis?",
+  helper: "This helps us tailor the entire experience for you.",
+  type: "single" as const,
+  options: [
+    { id: "migraine", label: "Migraine", icon: "🧠" },
+    { id: "parkinsons", label: "Parkinson's Disease", icon: "🫨" },
+  ],
+};
+
+// Parkinson's-specific onboarding phases (existing flow)
+const parkinsonsPhases = [
   {
     phase: "A",
     showInterstitialAfter: true,
@@ -132,72 +147,248 @@ const onboardingPhases = [
   },
 ];
 
+// Migraine-specific onboarding phases
+const migrainePhases = [
+  {
+    phase: "A",
+    showInterstitialAfter: true,
+    questions: [
+      {
+        id: "role",
+        title: "Let's get to know you",
+        helper: "This helps us personalize your experience.",
+        type: "single" as const,
+        options: [
+          { id: "patient", label: "I am the patient", icon: "🙋" },
+          { id: "caregiver", label: "I'm a caregiver", icon: "💝" },
+          { id: "both", label: "Both", icon: "🤝" },
+        ],
+      },
+      {
+        id: "migraine_stage",
+        title: "Where are you in your migraine journey?",
+        helper: "Choose what feels closest to you.",
+        type: "single" as const,
+        options: [
+          { id: "newly", label: "Recently started", icon: "🌱" },
+          { id: "few_years", label: "A few years in", icon: "🌿" },
+          { id: "chronic", label: "Chronic migraine", icon: "🌳" },
+          { id: "unsure", label: "Not sure yet", icon: "❓" },
+        ],
+      },
+    ],
+  },
+  {
+    phase: "B",
+    showInterstitialAfter: false,
+    questions: [
+      {
+        id: "migraine_goals",
+        title: "What can we help you with?",
+        helper: "Select up to 2 options.",
+        type: "multi" as const,
+        options: [
+          { id: "triggers", label: "Find my triggers", icon: "⚡" },
+          { id: "relief", label: "Find my reliefs", icon: "➕" },
+          { id: "understand", label: "Understand my migraine", icon: "🧠" },
+          { id: "communicate", label: "Communicate with my doctor", icon: "👩‍⚕️" },
+        ],
+      },
+      {
+        id: "attack_frequency",
+        title: "How often do you get migraines?",
+        helper: "An estimate is perfectly fine.",
+        type: "single" as const,
+        options: [
+          { id: "rare", label: "1-3 per month", icon: "1️⃣" },
+          { id: "moderate", label: "4-7 per month", icon: "2️⃣" },
+          { id: "frequent", label: "8-14 per month", icon: "3️⃣" },
+          { id: "chronic", label: "15+ per month", icon: "4️⃣" },
+          { id: "unsure", label: "Not sure", icon: "❓" },
+        ],
+      },
+      {
+        id: "warning_signs",
+        title: "Do you have warning signs before an attack?",
+        helper: "Light sensitivity, visual disturbances, nausea, excessive yawning or fatigue etc.",
+        type: "single" as const,
+        options: [
+          { id: "no", label: "No", icon: "❌" },
+          { id: "yes", label: "Yes", icon: "✅" },
+          { id: "unsure", label: "I'm not sure (yet)", icon: "🤔" },
+        ],
+      },
+    ],
+  },
+  {
+    phase: "C",
+    showInterstitialAfter: true,
+    questions: [
+      {
+        id: "migraine_medications",
+        title: "Are you taking any migraine medications?",
+        type: "single" as const,
+        options: [
+          { id: "yes", label: "Yes, I am", icon: "💊" },
+          { id: "no", label: "Not yet", icon: "⏳" },
+          { id: "unsure", label: "I'm not sure", icon: "🤔" },
+        ],
+      },
+      {
+        id: "add_medications",
+        title: "Want to add your medications now?",
+        helper: "You can always do this later.",
+        type: "single" as const,
+        showIf: "migraine_medications_yes",
+        options: [
+          { id: "yes", label: "Yes, let's do it", icon: "✅" },
+          { id: "later", label: "I'll do it later", icon: "⏰" },
+        ],
+      },
+      {
+        id: "tracking_goal",
+        title: "What would you like to track?",
+        helper: "Pick as many as you'd like.",
+        type: "multi" as const,
+        options: [
+          { id: "attacks", label: "Migraine attacks", icon: "⚡" },
+          { id: "medications", label: "Medications", icon: "💊" },
+          { id: "triggers", label: "Triggers", icon: "🎯" },
+          { id: "sleep", label: "Sleep quality", icon: "🌙" },
+          { id: "mood", label: "Mood & stress", icon: "💭" },
+        ],
+      },
+    ],
+  },
+  {
+    phase: "D",
+    showInterstitialAfter: false,
+    questions: [
+      {
+        id: "reminder_time",
+        title: "When should we check in?",
+        helper: "We'll send a gentle daily reminder.",
+        type: "single" as const,
+        options: [
+          { id: "morning", label: "Morning (8-10am)", icon: "🌅" },
+          { id: "midday", label: "Midday (12-2pm)", icon: "☀️" },
+          { id: "evening", label: "Evening (6-8pm)", icon: "🌆" },
+          { id: "none", label: "No reminders", icon: "🔕" },
+        ],
+      },
+      {
+        id: "share_data",
+        title: "Share updates with a caregiver or doctor?",
+        helper: "They'll only see summaries, never raw data.",
+        type: "single" as const,
+        options: [
+          { id: "yes", label: "Yes, I'd like that", icon: "👥" },
+          { id: "later", label: "Maybe later", icon: "⏰" },
+          { id: "no", label: "Keep it private", icon: "🔒" },
+        ],
+      },
+    ],
+  },
+];
+
 export interface OnboardingState {
   phaseIndex: number;
   questionIndex: number;
   answers: Record<string, string[] | number>;
+  diagnosis?: Diagnosis;
 }
 
 interface OnboardingFlowProps {
-  onComplete: () => void;
+  onComplete: (diagnosis: Diagnosis) => void;
   onSkip?: () => void;
   onAddMedications?: (state: OnboardingState) => void;
   initialState?: OnboardingState;
 }
 
 const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: OnboardingFlowProps) => {
+  const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(initialState?.diagnosis ?? null);
+  const [showDiagnosisQuestion, setShowDiagnosisQuestion] = useState(!initialState?.diagnosis);
+  const [showValueProp, setShowValueProp] = useState(false);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(initialState?.phaseIndex ?? 0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(initialState?.questionIndex ?? 0);
   const [showGratification, setShowGratification] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string[] | number>>(initialState?.answers ?? {});
 
+  const onboardingPhases = diagnosis === "migraine" ? migrainePhases : parkinsonsPhases;
   const currentPhase = onboardingPhases[currentPhaseIndex];
-  
-  // Get filtered questions for current phase (skip conditional questions that shouldn't show)
+
   const getVisibleQuestions = () => {
     if (!currentPhase) return [];
     return currentPhase.questions.filter((q) => {
-      if ((q as any).showIf === "medications_yes") {
-        // Only show "add_medications" if user selected "yes" to having medications
+      const showIf = (q as any).showIf as string | undefined;
+      if (showIf === "medications_yes") {
         const medsAnswer = answers["medications"];
+        return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
+      }
+      if (showIf === "migraine_medications_yes") {
+        const medsAnswer = answers["migraine_medications"];
         return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
       }
       return true;
     });
   };
-  
+
   const visibleQuestions = getVisibleQuestions();
   const currentQuestion = visibleQuestions[currentQuestionIndex];
 
-  // Calculate total progress (accounting for conditional questions)
   const getTotalVisibleQuestions = () => {
     return onboardingPhases.reduce((sum, phase) => {
       return sum + phase.questions.filter((q) => {
-        if ((q as any).showIf === "medications_yes") {
+        const showIf = (q as any).showIf as string | undefined;
+        if (showIf === "medications_yes") {
           const medsAnswer = answers["medications"];
+          return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
+        }
+        if (showIf === "migraine_medications_yes") {
+          const medsAnswer = answers["migraine_medications"];
           return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
         }
         return true;
       }).length;
     }, 0);
   };
-  
-  const totalQuestions = getTotalVisibleQuestions();
-  const completedQuestions = onboardingPhases
-    .slice(0, currentPhaseIndex)
-    .reduce((sum, phase) => {
-      return sum + phase.questions.filter((q) => {
-        if ((q as any).showIf === "medications_yes") {
-          const medsAnswer = answers["medications"];
-          return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
-        }
-        return true;
-      }).length;
-    }, 0) + currentQuestionIndex;
+
+  // +1 for diagnosis question
+  const totalQuestions = getTotalVisibleQuestions() + 1;
+  const completedQuestions = showDiagnosisQuestion ? 0 : (
+    onboardingPhases
+      .slice(0, currentPhaseIndex)
+      .reduce((sum, phase) => {
+        return sum + phase.questions.filter((q) => {
+          const showIf = (q as any).showIf as string | undefined;
+          if (showIf === "medications_yes") {
+            const medsAnswer = answers["medications"];
+            return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
+          }
+          if (showIf === "migraine_medications_yes") {
+            const medsAnswer = answers["migraine_medications"];
+            return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
+          }
+          return true;
+        }).length;
+      }, 0) + currentQuestionIndex + 1
+  );
+
+  // Handle diagnosis selection
+  const handleDiagnosisSelect = (id: string) => {
+    const selectedDiagnosis = id as Diagnosis;
+    setDiagnosis(selectedDiagnosis);
+    setTimeout(() => {
+      setShowDiagnosisQuestion(false);
+      setShowValueProp(true);
+      setCurrentPhaseIndex(0);
+      setCurrentQuestionIndex(0);
+    }, 300);
+  };
 
   const handleSelect = (id: string) => {
     if (!currentQuestion) return;
-    
+
     if (currentQuestion.type === "multi") {
       const current = (answers[currentQuestion.id] as string[]) || [];
       if (current.includes(id)) {
@@ -206,10 +397,7 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
         setAnswers({ ...answers, [currentQuestion.id]: [...current, id] });
       }
     } else {
-      // Single selection - set answer and auto-advance after a short delay
       setAnswers({ ...answers, [currentQuestion.id]: [id] });
-      
-      // Auto-advance for single selection questions
       setTimeout(() => {
         handleContinueInternal([id]);
       }, 300);
@@ -217,32 +405,31 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
   };
 
   const handleContinueInternal = (currentAnswer?: string[]) => {
-    // Check if user wants to add medications now
     if (currentQuestion?.id === "add_medications") {
       const addMedsAnswer = currentAnswer || answers["add_medications"];
       if (Array.isArray(addMedsAnswer) && addMedsAnswer.includes("yes") && onAddMedications) {
         const nextQuestionIndex = currentQuestionIndex + 1;
         const isLastInPhase = nextQuestionIndex >= visibleQuestions.length;
-        
+
         onAddMedications({
           phaseIndex: isLastInPhase ? currentPhaseIndex + 1 : currentPhaseIndex,
           questionIndex: isLastInPhase ? 0 : nextQuestionIndex,
           answers: { ...answers, [currentQuestion.id]: addMedsAnswer },
+          diagnosis: diagnosis!,
         });
         return;
       }
     }
-    
+
     const isLastQuestionInPhase = currentQuestionIndex >= visibleQuestions.length - 1;
     const isLastPhase = currentPhaseIndex >= onboardingPhases.length - 1;
 
     if (isLastQuestionInPhase) {
       if (isLastPhase) {
-        onComplete();
+        onComplete(diagnosis!);
       } else if (currentPhase.showInterstitialAfter) {
         setShowGratification(true);
       } else {
-        // Skip interstitial and go to next phase
         setCurrentPhaseIndex(currentPhaseIndex + 1);
         setCurrentQuestionIndex(0);
       }
@@ -259,7 +446,6 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
   const handleSliderCommit = (value: number) => {
     if (!currentQuestion) return;
     setAnswers({ ...answers, [currentQuestion.id]: value });
-    // Auto-advance when user releases the slider
     setTimeout(() => {
       handleContinueInternal();
     }, 300);
@@ -270,25 +456,33 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
   };
 
   const handleBack = () => {
+    if (showDiagnosisQuestion) return;
+
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(currentQuestionIndex - 1);
     } else if (currentPhaseIndex > 0) {
-      // Go to last question of previous phase
       const prevPhase = onboardingPhases[currentPhaseIndex - 1];
       const prevVisibleQuestions = prevPhase.questions.filter((q) => {
-        if ((q as any).showIf === "medications_yes") {
+        const showIf = (q as any).showIf as string | undefined;
+        if (showIf === "medications_yes") {
           const medsAnswer = answers["medications"];
+          return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
+        }
+        if (showIf === "migraine_medications_yes") {
+          const medsAnswer = answers["migraine_medications"];
           return Array.isArray(medsAnswer) && medsAnswer.includes("yes");
         }
         return true;
       });
       setCurrentPhaseIndex(currentPhaseIndex - 1);
       setCurrentQuestionIndex(prevVisibleQuestions.length - 1);
+    } else {
+      // Go back to diagnosis question
+      setShowDiagnosisQuestion(true);
     }
   };
 
-  // Check if we can go back
-  const canGoBack = currentPhaseIndex > 0 || currentQuestionIndex > 0;
+  const canGoBack = !showDiagnosisQuestion;
 
   const handleGratificationContinue = () => {
     setShowGratification(false);
@@ -303,16 +497,15 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
     return Array.isArray(answer) && answer.length > 0;
   };
 
-  // Only 2 interstitials now - after Phase A and Phase C
   const gratificationMessages: Record<number, { title: string; subtitle: string }> = {
     0: { title: "Great, nice to meet you! 🌟", subtitle: "Now let's understand how you're feeling." },
     2: { title: "You're all set! 🎯", subtitle: "Just a couple more preferences to go." },
   };
 
   if (showGratification) {
-    const message = gratificationMessages[currentPhaseIndex] || { 
-      title: "Looking good! ✨", 
-      subtitle: "Let's keep going." 
+    const message = gratificationMessages[currentPhaseIndex] || {
+      title: "Looking good! ✨",
+      subtitle: "Let's keep going."
     };
     return (
       <GratificationScreen
@@ -321,6 +514,63 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
         onContinue={handleGratificationContinue}
         type="celebration"
       />
+    );
+  }
+
+  // Show value proposition screens after diagnosis selection, before diagnosis-specific onboarding
+  if (showValueProp && diagnosis) {
+    return (
+      <ValuePropScreens
+        diagnosis={diagnosis}
+        onComplete={() => setShowValueProp(false)}
+        onBack={() => {
+          setShowValueProp(false);
+          setShowDiagnosisQuestion(true);
+        }}
+      />
+    );
+  }
+
+  // After diagnosis selection, if migraine → use the new streamlined onboarding
+  if (!showDiagnosisQuestion && diagnosis === "migraine") {
+    return (
+      <MigraineOnboarding
+        onComplete={() => onComplete("migraine")}
+        onSkip={onSkip}
+        onBack={() => setShowDiagnosisQuestion(true)}
+      />
+    );
+  }
+
+  // Render diagnosis question first
+  if (showDiagnosisQuestion) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+          key="diagnosis"
+          initial={{ opacity: 0, x: 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -50 }}
+          transition={{ duration: 0.25 }}
+        >
+          <OnboardingQuestion
+            progress={1}
+            totalSteps={totalQuestions}
+            title={diagnosisQuestion.title}
+            helper={diagnosisQuestion.helper}
+            questionType={diagnosisQuestion.type}
+            options={diagnosisQuestion.options}
+            selectedValues={diagnosis ? [diagnosis] : []}
+            onSelect={handleDiagnosisSelect}
+            onContinue={() => {}}
+            canContinue={false}
+            showBackButton={false}
+            onBack={() => {}}
+            showSkip={!!onSkip}
+            onSkip={onSkip}
+          />
+        </motion.div>
+      </AnimatePresence>
     );
   }
 
@@ -351,7 +601,7 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState }: 
           canContinue={canContinue()}
           showBackButton={canGoBack}
           onBack={handleBack}
-          showSkip={currentPhaseIndex === 0 && currentQuestionIndex === 0}
+          showSkip={false}
           onSkip={onSkip}
         />
       </motion.div>
