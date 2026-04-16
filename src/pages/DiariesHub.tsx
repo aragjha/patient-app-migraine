@@ -5,48 +5,117 @@ import HeroCard from "@/components/HeroCard";
 import DiaryTile from "@/components/DiaryTile";
 import BottomNav from "@/components/BottomNav";
 import { diaryCategories } from "@/data/diaryContent";
+import { migraineDiaryCategories } from "@/data/migraineDiaryContent";
+import { WeeklyAdherenceChart, generateMockAdherenceData } from "@/components/AdherenceChart";
+import { Diagnosis } from "@/components/OnboardingFlow";
+import { Lightbulb } from "lucide-react";
+
+const migraineTips = [
+  "Consistent sleep schedule reduces migraine frequency by up to 30%",
+  "Staying hydrated — aim for 8 glasses of water daily",
+  "Regular meals prevent blood sugar drops that trigger attacks",
+  "Track your triggers for 2 weeks to find patterns",
+];
+
+const pdTips = [
+  "Regular exercise helps manage motor symptoms",
+  "Consistent medication timing improves effectiveness",
+  "Deep breathing reduces tremor intensity",
+];
 
 interface DiariesHubProps {
   onStartCheckin: () => void;
   onNavigate: (tab: "home" | "maps" | "tools" | "profile") => void;
   onOpenDiary: (diaryId: string) => void;
+  diagnosis?: Diagnosis | null;
 }
 
-const DiariesHub = ({ onStartCheckin, onNavigate, onOpenDiary }: DiariesHubProps) => {
+const DiariesHub = ({ onStartCheckin, onNavigate, onOpenDiary, diagnosis }: DiariesHubProps) => {
   const [todayCompleted, setTodayCompleted] = useState(false);
+  const isMigraine = diagnosis === "migraine";
+  const categories = isMigraine ? migraineDiaryCategories : diaryCategories;
+  const tips = isMigraine ? migraineTips : pdTips;
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Header */}
-      <div className="px-4 pt-safe-top">
+    <div className="min-h-[100dvh] flex flex-col bg-background">
+      <div className="px-5 pt-3">
         <Header />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 px-4 pb-24 overflow-y-auto">
-        {/* Title */}
+      <div className="flex-1 px-5 pb-24 overflow-y-auto">
         <motion.h1
-          className="text-h1-lg text-foreground mb-6"
-          initial={{ opacity: 0, y: 20 }}
+          className="text-xl font-bold text-foreground mb-4"
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          Diaries 📓
+          {isMigraine ? "Migraine Diaries" : "Diaries"}
         </motion.h1>
 
-        {/* Today's Recommended */}
+        {/* Weekly Diary Completion Tracker */}
+        <motion.div
+          className="rounded-2xl bg-card border border-border/50 p-4 mb-5"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.05 }}
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-foreground">This Week's Diaries</h2>
+            <span className="text-sm font-medium text-accent">4/7 days</span>
+          </div>
+          <div className="flex items-end gap-2">
+            {[
+              { label: "Mon", status: "completed" },
+              { label: "Tue", status: "completed" },
+              { label: "Wed", status: "current" },
+              { label: "Thu", status: "completed" },
+              { label: "Fri", status: "completed" },
+              { label: "Sat", status: "empty" },
+              { label: "Sun", status: "empty" },
+            ].map((day) => (
+              <div key={day.label} className="flex-1 flex flex-col items-center gap-1.5">
+                <div
+                  className={`w-full h-16 rounded-lg ${
+                    day.status === "completed"
+                      ? "bg-accent"
+                      : day.status === "current"
+                      ? "bg-accent/30"
+                      : "bg-muted"
+                  }`}
+                />
+                <span className="text-[10px] text-muted-foreground">{day.label}</span>
+              </div>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground mt-3">
+            Complete 5+ days this week to earn the <span className="font-medium text-foreground">Dedicated Tracker</span> badge
+          </p>
+        </motion.div>
+
+        {/* Graph at TOP */}
         <motion.section
-          className="mb-8"
-          initial={{ opacity: 0, y: 20 }}
+          className="mb-5"
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          <h2 className="text-helper-lg text-muted-foreground uppercase tracking-wide mb-3">
-            Today's recommended
-          </h2>
+          <WeeklyAdherenceChart
+            title="Diary Completion"
+            percentage={65}
+            data={generateMockAdherenceData()}
+            missedCount={2}
+          />
+        </motion.section>
+
+        {/* Today's Check-in */}
+        <motion.section
+          className="mb-5"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
           <HeroCard
-            title={todayCompleted ? "You're done for today ✅" : "Today's Check-in"}
-            subtitle={todayCompleted ? "Great job today!" : "Quick symptom check"}
-            helper={todayCompleted ? undefined : "Build healthy habits daily"}
+            title={todayCompleted ? "Done for today ✅" : "Today's Check-in"}
+            subtitle={todayCompleted ? "Great job!" : isMigraine ? "Quick headache check" : "Quick symptom check"}
             duration={todayCompleted ? undefined : "~3 mins"}
             icon="📝"
             onClick={onStartCheckin}
@@ -57,41 +126,45 @@ const DiariesHub = ({ onStartCheckin, onNavigate, onOpenDiary }: DiariesHubProps
 
         {/* All Diaries */}
         <motion.section
-          initial={{ opacity: 0, y: 20 }}
+          className="mb-5"
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <h2 className="text-h2 text-foreground mb-4">All Diaries</h2>
-          <div className="grid grid-cols-3 gap-3">
-            {diaryCategories.map((diary, index) => (
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">All Diaries</h2>
+          <div className="grid grid-cols-3 gap-2.5">
+            {categories.map((diary, index) => (
               <DiaryTile
                 key={diary.id}
                 title={diary.title}
                 icon={diary.icon}
                 onClick={() => onOpenDiary(diary.id)}
-                delay={0.05 * index}
+                delay={0.03 * index}
               />
             ))}
           </div>
         </motion.section>
 
-        {/* History Preview */}
+        {/* Suggestions */}
         <motion.section
-          className="mt-8"
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
         >
-          <h2 className="text-h2 text-foreground mb-4">Recent Entries</h2>
-          <div className="glass-card">
-            <p className="text-muted-foreground text-body text-center py-4">
-              Complete your first check-in to see history here
-            </p>
+          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Tips to improve</h2>
+          <div className="space-y-2">
+            {tips.map((tip, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-card border border-border/50">
+                <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                  <Lightbulb className="w-3.5 h-3.5 text-amber-500" />
+                </div>
+                <p className="text-xs text-foreground leading-relaxed">{tip}</p>
+              </div>
+            ))}
           </div>
         </motion.section>
       </div>
 
-      {/* Bottom Nav */}
       <BottomNav activeTab="tools" onTabChange={onNavigate} />
     </div>
   );
