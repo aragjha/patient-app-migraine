@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Mic, Send } from "lucide-react";
+import { ArrowLeft, Mic, Send, Sparkles } from "lucide-react";
 import NeuraAvatar from "@/components/NeuraAvatar";
 import VoiceOverlay from "@/components/neura/VoiceOverlay";
 import NeuraInlineWidget, { WidgetConfig, WidgetSubmission } from "@/components/NeuraInlineWidget";
@@ -482,22 +482,47 @@ const NeuraChat = ({
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Header */}
-      <div className="px-4 pt-3 pb-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-20">
+      {/* Header — prototype design */}
+      <div className="px-5 pt-12 pb-3 bg-background/95 backdrop-blur-sm sticky top-0 z-20 border-b border-border">
         <div className="flex items-center gap-3">
           <button
             onClick={onBack}
-            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:bg-muted/70"
             aria-label="Back"
           >
-            <ArrowLeft className="w-5 h-5 text-foreground" />
+            <ArrowLeft className="w-5 h-5 text-foreground" strokeWidth={2.2} />
           </button>
-          <NeuraAvatar size="md" animate={micActive} />
-          <div className="flex-1">
-            <h1 className="text-h2 text-foreground">Neura</h1>
-            <span className="text-xs text-muted-foreground">
-              {micActive ? "Listening…" : isTyping ? "Thinking…" : "Online"}
-            </span>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+            style={{
+              background: "linear-gradient(135deg, #1B2A4E 0%, #7C3AED 50%, #3B82F6 100%)",
+              boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
+            }}
+          >
+            <Sparkles className="w-[18px] h-[18px]" strokeWidth={2} />
+          </div>
+          <div className="flex-1 leading-tight">
+            <div
+              className="text-[17px] font-extrabold text-foreground"
+              style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+            >
+              Neura
+            </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              {(micActive || isTyping) && (
+                <span className="inline-flex gap-[3px]">
+                  {[0, 1, 2].map((i) => (
+                    <motion.span
+                      key={i}
+                      className="w-[4px] h-[4px] rounded-full bg-accent"
+                      animate={{ opacity: [0.3, 1, 0.3] }}
+                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.18 }}
+                    />
+                  ))}
+                </span>
+              )}
+              <span>{micActive ? "Listening…" : isTyping ? "Thinking…" : "Online · tap anything"}</span>
+            </div>
           </div>
           {/* Tap ↔ Speak mode toggle */}
           <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-full" role="group" aria-label="Input mode">
@@ -589,56 +614,43 @@ const NeuraChat = ({
           </div>
         </div>
 
-        <div className="flex justify-center pt-2 pb-2">
-          <button
-            onClick={() => setMicActive((v) => !v)}
-            className="relative w-14 h-14 rounded-full flex items-center justify-center"
-            aria-label={
-              micActive
-                ? "Voice input (preview) — tap to stop"
-                : "Voice input (preview) — coming soon"
-            }
-            title="Voice input — preview (coming soon)"
+        {/* Unified pill input bar */}
+        <div className="px-4 pt-1 pb-3 flex gap-2 items-center">
+          <div
+            className="flex-1 flex items-center gap-2 bg-card border border-border rounded-full pl-4 pr-1.5"
+            style={{ minHeight: 48 }}
           >
-            {micActive && (
-              <motion.span
-                className="absolute inset-0 rounded-full bg-accent/20"
-                animate={{ scale: [1, 1.5], opacity: [0.5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              />
-            )}
-            <div
-              className={`relative w-14 h-14 rounded-full flex items-center justify-center ${
-                micActive ? "bg-accent shadow-cta" : "bg-muted"
-              }`}
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && input.trim() && sendUserMessage(input.trim())}
+              placeholder="Ask Neura anything…"
+              className="flex-1 bg-transparent border-0 outline-none text-sm text-foreground placeholder:text-muted-foreground py-2"
+            />
+            <button
+              onClick={() => {
+                setInputMode("speak");
+                setMicActive(true);
+              }}
+              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+              aria-label="Voice input"
+              title="Hold or tap to dictate"
             >
-              <Mic
-                className={`w-6 h-6 ${micActive ? "text-accent-foreground" : "text-foreground"}`}
-              />
-            </div>
-          </button>
-        </div>
-        <p className="text-center text-[10px] text-muted-foreground -mt-1 pb-1">
-          {micActive ? "Listening (preview)" : "Voice — preview"}
-        </p>
-
-        <div className="px-4 pb-safe-bottom pb-3 flex gap-2 items-center">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && input.trim() && sendUserMessage(input.trim())}
-            placeholder="Type or tap the mic…"
-            className="flex-1 px-4 py-3 rounded-full bg-muted text-foreground placeholder:text-muted-foreground text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            style={{ minHeight: 44 }}
-          />
-          <button
-            onClick={() => input.trim() && sendUserMessage(input.trim())}
-            className="w-11 h-11 rounded-full bg-accent flex items-center justify-center shadow-cta shrink-0"
-            aria-label="Send"
-          >
-            <Send className="w-4 h-4 text-accent-foreground" />
-          </button>
+              <Mic className="w-4 h-4 text-foreground" strokeWidth={2} />
+            </button>
+            <button
+              onClick={() => input.trim() && sendUserMessage(input.trim())}
+              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-white active:scale-95 transition-transform"
+              style={{
+                background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)",
+                boxShadow: "0 4px 10px rgba(59,130,246,0.32)",
+              }}
+              aria-label="Send"
+            >
+              <Send className="w-4 h-4" strokeWidth={2.2} />
+            </button>
+          </div>
         </div>
         <p className="text-center text-[10px] text-muted-foreground pb-2">
           Not medical advice. Not for emergencies.
