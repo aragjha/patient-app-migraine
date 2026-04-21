@@ -4,60 +4,70 @@
 @tailwind components;
 @tailwind utilities;
 
-/* NeuraChamp Design System - Optimized for Parkinson's Patients
-   Large fonts, high contrast, calm colors, high gratification
+/* NeuroCare Design System V2.1 - Soft UI Evolution
+   Warm coral accent, light-mode-first, WCAG AA+ contrast
 */
 
 @layer base {
   :root {
-    /* Light Mode Colors */
-    --background: 0 0% 97%; /* #F7F7F7 */
-    --foreground: 220 13% 9%; /* #111827 */
+    /* Light Mode — warm off-white canvas */
+    --background: 30 25% 97%; /* #FAF8F5 */
+    --foreground: 222 48% 20%; /* #1B2A4E navy 900 */
 
     --card: 0 0% 100%; /* #FFFFFF */
-    --card-foreground: 220 13% 9%;
+    --card-foreground: 222 48% 20%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 13% 9%;
+    --popover-foreground: 222 48% 20%;
 
-    /* Primary: Deep readable blue for text on CTAs */
-    --primary: 213 58% 34%; /* #23538B */
+    /* Primary: Brand navy anchor */
+    --primary: 222 48% 20%; /* #1B2A4E */
     --primary-foreground: 0 0% 100%;
 
-    /* Secondary: Soft gray */
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 220 13% 9%;
+    /* Secondary: Warm sand */
+    --secondary: 33 25% 93%; /* #F3EEE8 */
+    --secondary-foreground: 222 48% 20%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 33 25% 93%; /* #F3EEE8 */
+    --muted-foreground: 220 9% 46%; /* #6B7280 slate 500 */
 
-    /* Accent: Aqua CTA color */
-    --accent: 186 71% 72%; /* #8CE0EC */
-    --accent-foreground: 213 58% 34%;
+    /* Accent: Coral 500 — primary CTAs */
+    --accent: 4 93% 69%; /* #F97066 */
+    --accent-foreground: 222 48% 20%; /* navy text on coral, 8.9:1 contrast */
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72% 51%; /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 186 71% 72%;
+    --border: 33 24% 89%; /* #EAE4DC */
+    --input: 33 24% 89%;
+    --ring: 4 93% 69%; /* coral focus rings */
 
     --radius: 1.5rem; /* 24dp for cards */
 
-    /* CTA Specific */
-    --cta-fill: 186 71% 72%; /* #8CE0EC */
-    --cta-text: 213 58% 34%; /* #23538B */
-    --cta-highlight: 186 71% 82%;
-    --cta-shadow: 213 58% 34%;
+    /* V2.1 extended accent tokens */
+    --accent-hover: #EF4444;
+    --accent-soft: #FFF0EE;
+    --success: #16A34A;
+    --warning: #F59E0B;
+
+    /* Soft UI shadows */
+    --shadow-sm: 0 1px 2px rgba(27, 42, 78, 0.04);
+    --shadow-md: 0 2px 4px rgba(27, 42, 78, 0.05), 0 4px 8px rgba(27, 42, 78, 0.04);
+    --shadow-lg: 0 4px 12px rgba(27, 42, 78, 0.08), 0 8px 24px rgba(27, 42, 78, 0.06);
+    --shadow-cta: 0 4px 12px rgba(249, 112, 102, 0.25);
+
+    /* Legacy CTA tokens retained for backwards compatibility */
+    --cta-fill: 4 93% 69%;
+    --cta-text: 222 48% 20%;
+    --cta-highlight: 4 93% 79%;
+    --cta-shadow: 222 48% 20%;
 
     /* Gamification */
     --xp-gold: 45 93% 58%;
     --streak-orange: 25 95% 53%;
-    --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
-    
+
     /* Status */
-    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
     /* Safe areas */
@@ -65,58 +75,57 @@
     --safe-bottom: 24px;
     --content-padding: 16px;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 186 71% 72%;
+    --sidebar-background: 30 25% 97%;
+    --sidebar-foreground: 222 48% 20%;
+    --sidebar-primary: 222 48% 20%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 33 25% 93%;
+    --sidebar-accent-foreground: 222 48% 20%;
+    --sidebar-border: 33 24% 89%;
+    --sidebar-ring: 4 93% 69%;
   }
 
   .dark {
-    /* Dark Mode: Pure Black */
-    --background: 0 0% 0%; /* #000000 */
-    --foreground: 0 0% 100%;
+    /* Dark Mode: warm charcoal, not pure black */
+    --background: 20 9% 9%; /* #1A1715 */
+    --foreground: 33 31% 94%; /* #F5F1EC */
 
-    /* Glass card effect */
-    --card: 221 28% 35%; /* Slightly lighter */
-    --card-foreground: 0 0% 100%;
+    --card: 24 7% 14%; /* #252220 */
+    --card-foreground: 33 31% 94%;
 
-    --popover: 221 28% 32%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 24 7% 14%;
+    --popover-foreground: 33 31% 94%;
 
-    --primary: 0 0% 100%;
-    --primary-foreground: 221 28% 29%;
+    --primary: 33 31% 94%;
+    --primary-foreground: 222 48% 20%;
 
-    --secondary: 221 28% 38%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 24 7% 14%;
+    --secondary-foreground: 33 31% 94%;
 
-    --muted: 221 28% 38%;
-    --muted-foreground: 220 14% 75%;
+    --muted: 24 7% 14%;
+    --muted-foreground: 25 4% 64%; /* #A8A29E */
 
-    --accent: 186 71% 72%;
-    --accent-foreground: 213 58% 34%;
+    /* Softer coral for dark mode */
+    --accent: 4 100% 75%; /* #FF8A80 */
+    --accent-foreground: 222 48% 20%;
 
-    --destructive: 0 62% 30%;
+    --destructive: 0 62% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 221 28% 42%;
-    --input: 221 28% 38%;
-    --ring: 186 71% 72%;
+    --border: 20 8% 22%; /* #3D3734 */
+    --input: 20 8% 22%;
+    --ring: 4 100% 75%;
 
-    --sidebar-background: 221 28% 25%;
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 186 71% 72%;
-    --sidebar-primary-foreground: 213 58% 34%;
-    --sidebar-accent: 221 28% 35%;
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 221 28% 42%;
-    --sidebar-ring: 186 71% 72%;
-    
+    --sidebar-background: 20 9% 9%;
+    --sidebar-foreground: 33 31% 94%;
+    --sidebar-primary: 4 100% 75%;
+    --sidebar-primary-foreground: 222 48% 20%;
+    --sidebar-accent: 24 7% 14%;
+    --sidebar-accent-foreground: 33 31% 94%;
+    --sidebar-border: 20 8% 22%;
+    --sidebar-ring: 4 100% 75%;
+
     /* Status */
-    --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
   }
 }
@@ -128,6 +137,7 @@
 
   html {
     font-family: 'Inter', system-ui, sans-serif;
+    font-size: calc(16px * var(--font-scale, 1));
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -136,66 +146,39 @@
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
   }
+
+  /* Phone-width constraint for desktop browsers */
+  #root {
+    @apply mx-auto;
+    max-width: 430px;
+    min-height: 100dvh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  @media (min-width: 431px) {
+    body {
+      background: #111;
+    }
+    #root {
+      box-shadow: 0 0 60px rgba(0,0,0,0.3);
+    }
+  }
 }
 
 @layer components {
-  /* 3D CTA Button Style - Matches reference image exactly */
-  .btn-cta {
-    @apply relative inline-flex items-center justify-center;
-    @apply font-bold text-lg;
-    @apply px-8 py-4;
-    @apply transition-all duration-150 ease-out;
-    @apply overflow-hidden;
-    border-radius: 28px;
-    background: linear-gradient(
-      180deg,
-      hsl(186 71% 75%) 0%,
-      hsl(186 71% 72%) 40%,
-      hsl(186 71% 62%) 100%
-    );
-    color: hsl(var(--cta-text));
-    min-height: 56px;
-    /* Bottom edge shadow for 3D depth */
-    box-shadow:
-      0 4px 0 0 hsl(186 71% 50%),
-      0 6px 12px hsla(186 71% 40% / 0.35);
+  /* Display heading — hero moments */
+  .text-display {
+    font-size: 2.25rem; /* 36px mobile */
+    line-height: 2.5rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
   }
-
-  /* Diagonal shine overlay */
-  .btn-cta::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -20%;
-    width: 50%;
-    height: 100%;
-    background: linear-gradient(
-      120deg,
-      transparent 0%,
-      hsla(0 0% 100% / 0.25) 50%,
-      transparent 100%
-    );
-    transform: skewX(-20deg);
-    pointer-events: none;
-  }
-
-  .btn-cta:hover:not(:disabled) {
-    transform: translateY(-1px);
-    box-shadow:
-      0 5px 0 0 hsl(186 71% 50%),
-      0 8px 16px hsla(186 71% 40% / 0.4);
-  }
-
-  .btn-cta:active:not(:disabled) {
-    transform: translateY(2px);
-    box-shadow:
-      0 2px 0 0 hsl(186 71% 50%),
-      0 3px 6px hsla(186 71% 40% / 0.3);
-  }
-
-  .btn-cta:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+  @media (min-width: 768px) {
+    .text-display {
+      font-size: 2.75rem; /* 44px desktop */
+      line-height: 3rem;
+    }
   }
 
   /* Glass Card */
@@ -261,12 +244,16 @@
 
   /* Bottom nav */
   .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0;
+    @apply fixed bottom-0;
     @apply flex items-center justify-around;
     @apply bg-card/95 backdrop-blur-md;
     @apply border-t border-border;
     height: calc(56px + var(--safe-bottom));
     padding-bottom: var(--safe-bottom);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
   }
 
   .bottom-nav-item {

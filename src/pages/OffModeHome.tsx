@@ -163,7 +163,7 @@ const OffModeHome = ({ onSwitchToOn }: OffModeHomeProps) => {
         <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-gradient-to-t from-background to-transparent">
           <motion.button
             onClick={handleBackToOn}
-            className="btn-cta w-full"
+            className="w-full min-h-[56px] px-6 rounded-2xl font-semibold bg-accent text-accent-foreground shadow-cta flex items-center justify-center gap-2 hover:bg-[hsl(var(--accent-hover))] transition-colors duration-200"
             whileTap={{ scale: 0.98 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -322,7 +322,7 @@ const OffModeHome = ({ onSwitchToOn }: OffModeHomeProps) => {
       <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-gradient-to-t from-background to-transparent">
         <motion.button
           onClick={handleLogAndStartTimer}
-          className="btn-cta w-full"
+          className="w-full min-h-[56px] px-6 rounded-2xl font-semibold bg-accent text-accent-foreground shadow-cta flex items-center justify-center gap-2 hover:bg-[hsl(var(--accent-hover))] transition-colors duration-200"
           whileTap={{ scale: 0.98 }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

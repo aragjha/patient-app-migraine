@@ -18,7 +18,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['Nunito', 'system-ui', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       fontSize: {
         // NeuraChamp typography scale - accessible for Parkinson's patients
@@ -108,10 +108,13 @@ export default {
         '4xl': '2rem',
       },
       boxShadow: {
-        'cta': '0 6px 18px hsla(213, 58%, 34%, 0.18)',
+        'cta': '0 4px 12px rgba(249, 112, 102, 0.25)',
         'cta-hover': '0 8px 24px hsla(213, 58%, 34%, 0.22)',
         'card': '0 4px 16px hsla(0, 0%, 0%, 0.05)',
         'card-dark': '0 4px 16px hsla(0, 0%, 0%, 0.2)',
+        'sm-soft': '0 1px 2px rgba(27, 42, 78, 0.04)',
+        'md-soft': '0 2px 4px rgba(27, 42, 78, 0.05), 0 4px 8px rgba(27, 42, 78, 0.04)',
+        'lg-soft': '0 4px 12px rgba(27, 42, 78, 0.08), 0 8px 24px rgba(27, 42, 78, 0.06)',
       },
       keyframes: {
         "accordion-down": {
