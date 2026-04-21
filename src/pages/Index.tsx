@@ -192,7 +192,14 @@ const Index = () => {
     setCurrentScreen(isOn ? "home" : "home-off");
   };
 
-  const handleStartCheckin = () => { setPreviousScreen(currentScreen); setCurrentScreen("checkin"); };
+  // In the prototype, check-in runs as a scripted Neura conversation rather
+  // than a standalone modal. Route through Neura with the daily-checkin script.
+  const handleStartCheckin = () => {
+    setPreviousScreen(currentScreen);
+    setNeuraInitialScript("daily-checkin");
+    setNeuraInitialQuery(null);
+    setCurrentScreen("neurogpt");
+  };
   const handleCheckinComplete = () => setCurrentScreen("home");
   const handleOpenChat = () => setCurrentScreen("chat");
   const handleOpenNeuroGPT = () => { setPreviousScreen(currentScreen); setNeuraInitialScript(null); setNeuraInitialQuery(null); setCurrentScreen("neurogpt"); };
@@ -208,7 +215,13 @@ const Index = () => {
     setNeuraInitialQuery(query);
     setCurrentScreen("neurogpt");
   };
-  const handleLogHeadache = () => { setPreviousScreen(currentScreen); setCurrentScreen("log-headache"); };
+  // Log-headache also runs as a Neura conversation in the prototype.
+  const handleLogHeadache = () => {
+    setPreviousScreen(currentScreen);
+    setNeuraInitialScript("headache-log");
+    setNeuraInitialQuery(null);
+    setCurrentScreen("neurogpt");
+  };
   const handleOpenTriggerMedication = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-medication"); };
   const handleOpenPainRelief = () => { setPreviousScreen(currentScreen); setCurrentScreen("pain-relief"); };
   const handleOpenTriggerAnalysis = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-analysis"); };
