@@ -6,7 +6,10 @@ import NeuraInlineWidget, { WidgetConfig, WidgetSubmission } from "@/components/
 import NeuraSummaryChip from "@/components/NeuraSummaryChip";
 import NeuraContentCard, { NeuraContent } from "@/components/NeuraContentCard";
 import NeuraContentModal from "@/components/NeuraContentModal";
-import { findContentForIntent } from "@/data/neuraContentLibrary";
+import { pickPhrase } from "@/data/neuraPhrasePool";
+import { ScriptId, getScript, Script } from "@/data/neuraScripts";
+import { routeIntent, isDerailment, briefAnswerForDerailment } from "@/data/neuraIntentRouter";
+import { getMockAttacks } from "@/data/mockUserData";
 
 type MessageBlock =
   | { type: "text"; text: string }
@@ -22,7 +25,8 @@ interface ChatMessage {
 
 interface NeuraChatProps {
   onBack: () => void;
-  initialScript?: string; // placeholder for Phase E — e.g., "log-headache"
+  initialScript?: ScriptId | null;
+  contextualGreeting?: string;
 }
 
 const quickChips = [
@@ -32,19 +36,65 @@ const quickChips = [
   "Check my meds",
 ];
 
-const NeuraChat = ({ onBack }: NeuraChatProps) => {
-  const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    {
-      id: "1",
-      role: "neura",
-      blocks: [{ type: "text", text: "Hey! How's your head today?" }],
-    },
-  ]);
+// Count attacks from mock data that happened in the last 7 days (relative to a
+// reference date so the demo behaves predictably in April 2026).
+const countRecentAttacks = (referenceDate: Date = new Date("2026-04-15")): number => {
+  try {
+    const attacks = getMockAttacks();
+    const weekStart = new Date(referenceDate);
+    weekStart.setDate(weekStart.getDate() - 7);
+    return attacks.filter((a) => {
+      const d = new Date(a.date);
+      return d >= weekStart && d <= referenceDate;
+    }).length;
+  } catch {
+    return 0;
+  }
+};
+
+const NeuraChat = ({ onBack, initialScript = null, contextualGreeting }: NeuraChatProps) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [micActive, setMicActive] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [modalContent, setModalContent] = useState<NeuraContent | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Script engine state
+  const [activeScript, setActiveScript] = useState<ScriptId | null>(null);
+  const [scriptStepIdx, setScriptStepIdx] = useState(0);
+
+  // Seed greeting + optional proactive prompt or initial script once on mount
+  useEffect(() => {
+    const recentAttackCount = countRecentAttacks();
+    const greeting: ChatMessage = {
+      id: "greet-1",
+      role: "neura",
+      blocks: [
+        {
+          type: "text",
+          text:
+            contextualGreeting ??
+            (recentAttackCount >= 3
+              ? `You've had ${recentAttackCount} attacks this week. Want to explore what triggered them?`
+              : "Hey! How's your head today?"),
+        },
+      ],
+    };
+    setMessages([greeting]);
+
+    // If launched with an initial script, kick it off after a beat
+    if (initialScript) {
+      const timer = setTimeout(() => startScript(initialScript), 500);
+      return () => clearTimeout(timer);
+    }
+    // If proactive (3+ attacks), start diary-triggers to let user explore
+    if (!initialScript && recentAttackCount >= 3) {
+      const timer = setTimeout(() => startScript("diary-triggers"), 800);
+      return () => clearTimeout(timer);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -52,59 +102,183 @@ const NeuraChat = ({ onBack }: NeuraChatProps) => {
     }
   }, [messages, isTyping]);
 
-  const sendUserMessage = (text: string) => {
-    const userMsg: ChatMessage = {
-      id: `u-${Date.now()}`,
+  // --------- Message helpers ---------
+  const appendNeura = (blocks: MessageBlock[]) => {
+    const msg: ChatMessage = {
+      id: `n-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      role: "neura",
+      blocks,
+    };
+    setMessages((prev) => [...prev, msg]);
+  };
+
+  const appendUser = (text: string) => {
+    const msg: ChatMessage = {
+      id: `u-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       role: "user",
       blocks: [{ type: "text", text }],
     };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+    setMessages((prev) => [...prev, msg]);
+  };
+
+  const withTyping = (fn: () => void, delayMs = 600) => {
     setIsTyping(true);
-
-    // Simple intent detection — Phase E will replace with a full router
     setTimeout(() => {
-      const matchedContent = findContentForIntent(text);
-      const reply: ChatMessage = {
-        id: `n-${Date.now()}`,
-        role: "neura",
-        blocks: [],
-      };
-
-      if (matchedContent.length > 0) {
-        reply.blocks.push({
-          type: "text",
-          text: "Here's what I know — tap the card to dive deeper.",
-        });
-        reply.blocks.push({ type: "content-card", content: matchedContent[0] });
-      } else if (
-        text.toLowerCase().includes("headache") ||
-        text.toLowerCase().includes("log")
-      ) {
-        reply.blocks.push({
-          type: "text",
-          text: "Sorry to hear that. Let's log it. Where does it hurt?",
-        });
-        reply.blocks.push({ type: "widget", config: { type: "head-diagram" } });
-      } else if (
-        text.toLowerCase().includes("check-in") ||
-        text.toLowerCase().includes("checkin")
-      ) {
-        reply.blocks.push({ type: "text", text: "Quick check-in. How are you feeling?" });
-        reply.blocks.push({ type: "widget", config: { type: "pain-slider" } });
-      } else {
-        reply.blocks.push({
-          type: "text",
-          text: "I hear you. Try a quick action below or tell me more.",
-        });
-      }
       setIsTyping(false);
-      setMessages((prev) => [...prev, reply]);
-    }, 700);
+      fn();
+    }, delayMs);
+  };
+
+  // --------- Script engine ---------
+  const startScript = (scriptId: ScriptId) => {
+    const script = getScript(scriptId);
+    if (!script) return;
+
+    // Trigger insights: special-case — surface a short insight text, no widgets.
+    if (scriptId === "trigger-insights") {
+      withTyping(() => {
+        appendNeura([
+          {
+            type: "text",
+            text:
+              "Looking at your recent attacks, poor sleep and stress show up most often. Keep logging for 2-3 more weeks to get cleaner patterns.",
+          },
+        ]);
+      }, 500);
+      return;
+    }
+
+    setActiveScript(scriptId);
+    setScriptStepIdx(0);
+
+    withTyping(() => {
+      // 1. Opening phrase
+      appendNeura([{ type: "text", text: pickPhrase(script.openPhraseKey) }]);
+
+      // 2. First step phrase + widget (if any)
+      if (script.steps.length > 0) {
+        const step = script.steps[0];
+        setTimeout(() => {
+          const blocks: MessageBlock[] = [
+            { type: "text", text: pickPhrase(step.phraseKey) },
+          ];
+          if (step.widget) {
+            blocks.push({ type: "widget", config: step.widget });
+          }
+          appendNeura(blocks);
+        }, 400);
+      } else {
+        // No steps — just close
+        setTimeout(() => {
+          appendNeura([{ type: "text", text: pickPhrase(script.closePhraseKey) }]);
+          setActiveScript(null);
+          setScriptStepIdx(0);
+        }, 400);
+      }
+    }, 500);
+  };
+
+  const advanceScript = (script: Script, nextIdx: number) => {
+    if (nextIdx >= script.steps.length) {
+      // Close the script
+      withTyping(() => {
+        appendNeura([{ type: "text", text: pickPhrase(script.closePhraseKey) }]);
+      }, 500);
+      setActiveScript(null);
+      setScriptStepIdx(0);
+      return;
+    }
+    const step = script.steps[nextIdx];
+    setScriptStepIdx(nextIdx);
+    withTyping(() => {
+      const blocks: MessageBlock[] = [
+        { type: "text", text: pickPhrase(step.phraseKey) },
+      ];
+      if (step.widget) {
+        blocks.push({ type: "widget", config: step.widget });
+      }
+      appendNeura(blocks);
+    }, 500);
+  };
+
+  const reAskCurrentStep = () => {
+    if (!activeScript) return;
+    const script = getScript(activeScript);
+    const step = script.steps[scriptStepIdx];
+    if (!step) return;
+    const blocks: MessageBlock[] = [
+      { type: "text", text: `${pickPhrase("derail.return")} ${pickPhrase(step.phraseKey)}` },
+    ];
+    if (step.widget) {
+      blocks.push({ type: "widget", config: step.widget });
+    }
+    appendNeura(blocks);
+  };
+
+  // --------- Input handlers ---------
+  const sendUserMessage = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    appendUser(trimmed);
+    setInput("");
+
+    // Mid-script: handle derailment or ignore-and-continue
+    if (activeScript) {
+      if (isDerailment(trimmed)) {
+        withTyping(() => {
+          appendNeura([{ type: "text", text: briefAnswerForDerailment(trimmed) }]);
+          // then a moment later, re-ask current step with derail prefix
+          setTimeout(() => reAskCurrentStep(), 500);
+        }, 600);
+      } else {
+        // Treat as soft acknowledgement and re-prompt the current step
+        withTyping(() => {
+          appendNeura([{ type: "text", text: pickPhrase("ack.gotIt") }]);
+          setTimeout(() => reAskCurrentStep(), 400);
+        }, 500);
+      }
+      return;
+    }
+
+    // No active script — route intent
+    const intent = routeIntent(trimmed);
+
+    if (intent.type === "script" && intent.scriptId) {
+      startScript(intent.scriptId);
+      return;
+    }
+    if (intent.type === "insight" && intent.scriptId) {
+      startScript(intent.scriptId);
+      return;
+    }
+    if (intent.type === "content" && intent.content) {
+      withTyping(() => {
+        appendNeura([
+          { type: "text", text: "Here's what I know — tap the card to dive deeper." },
+          { type: "content-card", content: intent.content! },
+        ]);
+      }, 600);
+      return;
+    }
+    if (intent.type === "appointment" && intent.text) {
+      withTyping(() => {
+        appendNeura([{ type: "text", text: intent.text! }]);
+      }, 500);
+      return;
+    }
+    // Conversational fallback
+    withTyping(() => {
+      appendNeura([
+        {
+          type: "text",
+          text: intent.text ?? "Tell me more about what's going on. Or try a quick action below.",
+        },
+      ]);
+    }, 500);
   };
 
   const handleWidgetSubmit = (msgId: string, blockIdx: number, result: WidgetSubmission) => {
-    // Update the widget block to submitted and add a follow-up message
+    // Update the widget block to submitted (renders as summary chip)
     setMessages((prev) =>
       prev.map((m) => {
         if (m.id !== msgId) return m;
@@ -116,17 +290,20 @@ const NeuraChat = ({ onBack }: NeuraChatProps) => {
         };
       })
     );
-    // Neura follow-up
-    setTimeout(() => {
-      const followUp: ChatMessage = {
-        id: `n-${Date.now()}`,
-        role: "neura",
-        blocks: [{ type: "text", text: "Got it. Anything else to log?" }],
-      };
-      setMessages((prev) => [...prev, followUp]);
-    }, 400);
+
+    // Advance active script if any
+    if (activeScript) {
+      const script = getScript(activeScript);
+      advanceScript(script, scriptStepIdx + 1);
+    } else {
+      // Stand-alone widget completion
+      withTyping(() => {
+        appendNeura([{ type: "text", text: pickPhrase("ack.gotIt") }]);
+      }, 400);
+    }
   };
 
+  // --------- Render helpers ---------
   const renderBlock = (
     msgId: string,
     role: "user" | "neura",

@@ -31,6 +31,7 @@ import { getDiaryById } from "@/data/diaryContent";
 import { getMigraineDiaryById } from "@/data/migraineDiaryContent";
 import { Medication, MedicationLog } from "@/data/medicationContent";
 import { Appointment, sampleAppointments } from "@/data/appointmentContent";
+import { ScriptId } from "@/data/neuraScripts";
 
 type AppScreen =
   | "splash"
@@ -80,6 +81,9 @@ const Index = () => {
   // Headache tracking
   const [headacheCount, setHeadacheCount] = usePersistedState("nc-headache-count", 0);
   const [activeMigraine, setActiveMigraine] = useState<{ startTime: Date } | null>(null);
+
+  // Neura script targeting (set when home tiles/CTAs want Neura to start a specific flow)
+  const [neuraInitialScript, setNeuraInitialScript] = useState<ScriptId | null>(null);
 
   // Load mock data when demo mode is active
   useEffect(() => {
@@ -160,7 +164,14 @@ const Index = () => {
   const handleStartCheckin = () => { setPreviousScreen(currentScreen); setCurrentScreen("checkin"); };
   const handleCheckinComplete = () => setCurrentScreen("home");
   const handleOpenChat = () => setCurrentScreen("chat");
-  const handleOpenNeuroGPT = () => setCurrentScreen("neurogpt");
+  const handleOpenNeuroGPT = () => { setNeuraInitialScript(null); setCurrentScreen("neurogpt"); };
+  const handleOpenNeuraWithScript = (scriptId: ScriptId) => {
+    setPreviousScreen(currentScreen);
+    setNeuraInitialScript(scriptId);
+    setCurrentScreen("neurogpt");
+  };
+  // eslint for unused-var guard: expose for later phases via window debug hook
+  void handleOpenNeuraWithScript;
   const handleLogHeadache = () => { setPreviousScreen(currentScreen); setCurrentScreen("log-headache"); };
   const handleOpenTriggerMedication = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-medication"); };
   const handleOpenPainRelief = () => { setPreviousScreen(currentScreen); setCurrentScreen("pain-relief"); };
@@ -418,7 +429,15 @@ const Index = () => {
       case "chat":
         return <NeuroQueryChat onNavigate={handleNavigate} />;
       case "neurogpt":
-        return <NeuraChat onBack={() => setCurrentScreen(previousScreen === "neurogpt" ? "home" : previousScreen)} />;
+        return (
+          <NeuraChat
+            onBack={() => {
+              setNeuraInitialScript(null);
+              setCurrentScreen(previousScreen === "neurogpt" ? "home" : previousScreen);
+            }}
+            initialScript={neuraInitialScript}
+          />
+        );
       case "profile":
         return <ProfilePage onNavigate={handleNavigate} />;
       default:
