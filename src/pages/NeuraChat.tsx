@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Mic, Send } from "lucide-react";
 import NeuraAvatar from "@/components/NeuraAvatar";
+import VoiceOverlay from "@/components/neura/VoiceOverlay";
 import NeuraInlineWidget, { WidgetConfig, WidgetSubmission } from "@/components/NeuraInlineWidget";
 import NeuraSummaryChip from "@/components/NeuraSummaryChip";
 import NeuraContentCard, { NeuraContent } from "@/components/NeuraContentCard";
@@ -82,6 +83,7 @@ const NeuraChat = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [micActive, setMicActive] = useState(false);
+  const [inputMode, setInputMode] = useState<"tap" | "speak">("tap");
   const [isTyping, setIsTyping] = useState(false);
   const [modalContent, setModalContent] = useState<NeuraContent | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -497,8 +499,41 @@ const NeuraChat = ({
               {micActive ? "Listening…" : isTyping ? "Thinking…" : "Online"}
             </span>
           </div>
+          {/* Tap ↔ Speak mode toggle */}
+          <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-full" role="group" aria-label="Input mode">
+            {(["tap", "speak"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => {
+                  setInputMode(m);
+                  if (m === "speak") setMicActive(true);
+                  else setMicActive(false);
+                }}
+                className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
+                  inputMode === m
+                    ? "bg-card text-foreground shadow-sm-soft"
+                    : "text-muted-foreground"
+                }`}
+                aria-pressed={inputMode === m}
+              >
+                {m === "tap" ? "Tap" : "Speak"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* Full-screen voice overlay */}
+      <VoiceOverlay
+        active={micActive && inputMode === "speak"}
+        onStop={() => setMicActive(false)}
+        onSwapToKeyboard={() => {
+          setMicActive(false);
+          setInputMode("tap");
+        }}
+        onTranscribe={(text) => sendUserMessage(text)}
+        mode="handsfree"
+      />
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 px-4 py-4 overflow-y-auto pb-56 scroll-smooth">
