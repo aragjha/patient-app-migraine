@@ -274,7 +274,7 @@ const Index = () => {
       case "splash":
         return <SplashScreen onContinue={handleSplashGetStarted} onSignIn={handleSplashSignIn} />;
       case "auth":
-        return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={handleAuthBack} onSkip={handleSkipToHome} />;
+        return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={handleAuthBack} onSkip={handleSkipToHome} initialMode={authMode} />;
       case "consent":
         return (
           <ConsentScreen

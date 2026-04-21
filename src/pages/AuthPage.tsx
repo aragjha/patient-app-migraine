@@ -1,28 +1,126 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
-import CTAButton from "@/components/CTAButton";
-import ThemeToggle from "@/components/ThemeToggle";
-import logoLight from "@/assets/neurocare-logo.png";
 import { toast } from "sonner";
-import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ChevronLeft, Eye, EyeOff } from "lucide-react";
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
   onBack: () => void;
   onSkip?: () => void;
+  initialMode?: AuthMode;
 }
 
 type AuthMode = "login" | "signup" | "forgot";
 
-const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
-  const [mode, setMode] = useState<AuthMode>("login");
+const TextField = ({
+  label,
+  type = "text",
+  value,
+  onChange,
+  placeholder,
+  right,
+  autoComplete,
+  disabled,
+}: {
+  label: string;
+  type?: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  right?: React.ReactNode;
+  autoComplete?: string;
+  disabled?: boolean;
+}) => (
+  <label className="block">
+    <div className="text-[12px] font-semibold text-muted-foreground mb-1.5 tracking-[0.02em]">
+      {label}
+    </div>
+    <div className="relative">
+      <input
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        autoComplete={autoComplete}
+        disabled={disabled}
+        className="w-full h-[54px] rounded-2xl border-[1.5px] border-border bg-card text-foreground text-[15px] px-4 outline-none box-border focus:border-accent transition-colors"
+        style={right ? { paddingRight: 48 } : undefined}
+      />
+      {right && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">{right}</div>
+      )}
+    </div>
+  </label>
+);
+
+const SocialBtn = ({
+  onClick,
+  disabled,
+  icon,
+  label,
+  dark,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  icon: React.ReactNode;
+  label: string;
+  dark?: boolean;
+}) => (
+  <button
+    onClick={onClick}
+    disabled={disabled}
+    className={`h-[52px] rounded-[26px] cursor-pointer text-[15px] font-semibold flex items-center justify-center gap-2.5 transition-all disabled:opacity-50 ${
+      dark
+        ? "bg-black text-white border border-black"
+        : "bg-card text-foreground border border-border"
+    }`}
+  >
+    {icon}
+    {label}
+  </button>
+);
+
+const PrimaryBtn = ({
+  onClick,
+  disabled,
+  children,
+  type = "button",
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  children: React.ReactNode;
+  type?: "button" | "submit";
+}) => (
+  <button
+    type={type}
+    onClick={onClick}
+    disabled={disabled}
+    className="w-full h-14 rounded-[28px] border-0 text-white text-base font-bold flex items-center justify-center gap-2 transition-transform active:scale-[0.98] disabled:cursor-not-allowed"
+    style={{
+      background: disabled
+        ? "hsl(var(--border))"
+        : "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)",
+      color: disabled ? "hsl(var(--muted-foreground))" : "#fff",
+      boxShadow: disabled ? "none" : "0 8px 22px rgba(59,130,246,0.32)",
+    }}
+  >
+    {children}
+  </button>
+);
+
+const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: AuthPageProps) => {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    setMode(initialMode);
+  }, [initialMode]);
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -31,9 +129,7 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
         redirect_uri: window.location.origin,
       });
       if (result.error) throw result.error;
-      if (!result.redirected) {
-        onAuthSuccess();
-      }
+      if (!result.redirected) onAuthSuccess();
     } catch (error: any) {
       toast.error(error.message || "Failed to sign in with Google");
     } finally {
@@ -43,16 +139,10 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!email || !password || (mode === "signup" && !firstName)) {
       toast.error("Please fill in all fields");
       return;
     }
-
-    if (mode === "signup" && password !== confirmPassword) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
     if (password.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -66,15 +156,14 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
           password,
           options: {
             emailRedirectTo: window.location.origin,
+            data: { first_name: firstName },
           },
         });
         if (error) throw error;
         toast.success("Check your email to verify your account!");
+        onAuthSuccess();
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         onAuthSuccess();
       }
@@ -85,20 +174,19 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
     }
   };
 
-  const handleForgotPassword = async (e: React.FormEvent) => {
+  const handleForgot = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
       toast.error("Please enter your email");
       return;
     }
-
     setLoading(true);
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      toast.success("Password reset link sent to your email!");
+      toast.success("Reset link sent");
       setMode("login");
     } catch (error: any) {
       toast.error(error.message || "Failed to send reset link");
@@ -107,217 +195,197 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
     }
   };
 
+  const isLogin = mode === "login";
+  const isForgot = mode === "forgot";
+
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-safe-top py-4">
-        <motion.button
-          onClick={onBack}
-          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
+    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
+      {/* Header bar */}
+      <div className="px-5 pt-14 pb-2 flex items-center gap-3">
+        <button
+          onClick={isForgot ? () => setMode("login") : onBack}
+          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:bg-muted/70"
           aria-label="Go back"
         >
-          <ArrowLeft className="w-5 h-5 text-foreground" />
-        </motion.button>
-        <ThemeToggle />
+          <ChevronLeft className="w-5 h-5" strokeWidth={2.2} />
+        </button>
+        <div className="flex-1 h-1.5 rounded-sm bg-foreground/10 overflow-hidden">
+          <div
+            className="h-full rounded-sm transition-[width] duration-300"
+            style={{
+              width: "100%",
+              background: "linear-gradient(90deg, #3B82F6 0%, #7C3AED 100%)",
+            }}
+          />
+        </div>
+        <div className="w-10 text-xs text-muted-foreground text-right tabular-nums">1/1</div>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 flex flex-col px-6 pt-8">
-        {/* Logo */}
-        <motion.img
-          src={logoLight}
-          alt="NeuroCare"
-          className="h-16 w-auto object-contain mx-auto mb-8"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-        />
-
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={mode}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-          >
-            {/* Title */}
-            <h1 className="text-h1-lg text-foreground text-center mb-2">
-              {mode === "login" && "Welcome back"}
-              {mode === "signup" && "Create account"}
-              {mode === "forgot" && "Reset password"}
-            </h1>
-            <p className="text-body text-muted-foreground text-center mb-8">
-              {mode === "login" && "Sign in to continue your journey"}
-              {mode === "signup" && "Start your personalized journey"}
-              {mode === "forgot" && "We'll send you a reset link"}
-            </p>
-
-            {/* Google Sign In */}
-            {mode !== "forgot" && (
-              <>
-                <button
-                  onClick={handleGoogleSignIn}
-                  disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 py-3.5 px-4 rounded-2xl border border-border bg-card hover:bg-muted transition-colors disabled:opacity-50"
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={mode}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.25 }}
+          className="flex-1 flex flex-col"
+        >
+          {isForgot ? (
+            <>
+              <div className="px-6 pt-5 flex-1 overflow-y-auto">
+                <div
+                  className="text-[36px] font-medium leading-[1.05] tracking-tight text-foreground mb-2"
+                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
                 >
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  <span className="font-medium">Continue with Google</span>
-                </button>
+                  Reset password
+                </div>
+                <div className="text-muted-foreground text-[15px] mb-8">
+                  We'll email you a link to get back in.
+                </div>
+                <form onSubmit={handleForgot} className="space-y-4">
+                  <TextField
+                    label="EMAIL"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="you@email.com"
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                </form>
+              </div>
+              <div className="px-6 pb-10">
+                <PrimaryBtn onClick={handleForgot as any} disabled={!email || loading}>
+                  {loading ? "Sending..." : "Send reset link"}
+                </PrimaryBtn>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="px-6 pt-5 flex-1 overflow-y-auto">
+                <div
+                  className="text-[36px] font-medium leading-[1.05] tracking-tight text-foreground mb-2"
+                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                >
+                  {isLogin ? "Welcome back" : "Create your account"}
+                </div>
+                <div className="text-muted-foreground text-[15px] mb-6">
+                  {isLogin ? "Pick up right where you left off." : "Takes less than a minute."}
+                </div>
 
-                {/* Divider */}
-                <div className="flex items-center gap-4 my-6">
+                {/* Social buttons */}
+                <div className="flex flex-col gap-2.5 mb-5">
+                  <SocialBtn
+                    dark
+                    disabled={loading}
+                    label="Continue with Apple"
+                    icon={
+                      <svg width="16" height="18" viewBox="0 0 16 18" fill="#fff">
+                        <path d="M13.2 13.2c-.5 1.2-1.1 2.3-1.9 3.3-.7.9-1.5 1.4-2.3 1.4-.6 0-1.2-.2-1.9-.5-.7-.3-1.3-.5-1.9-.5s-1.3.2-2 .5-1.3.5-1.7.5c-.9 0-1.7-.5-2.5-1.5C-.5 15.1-1 13.7-1 12.1c0-1.7.4-3 1.2-4.1.8-1 1.8-1.6 3-1.6.5 0 1.1.1 1.8.4s1.2.4 1.5.4c.3 0 .9-.2 1.6-.5s1.4-.4 1.9-.3c1.5.1 2.6.7 3.3 1.8-1.3.8-2 1.9-2 3.4 0 1.2.4 2.1 1.2 2.9.4.3.8.6 1.3.8-.1.3-.2.6-.4.9zM9.9 1.8c0 1-.4 1.9-1.1 2.7-.9 1-2 1.6-3.2 1.5 0-.1 0-.3 0-.4 0-.9.4-2 1.2-2.8.4-.4.9-.8 1.4-1C8.9 1.5 9.4 1.3 9.8 1.3l.1.5z" />
+                      </svg>
+                    }
+                  />
+                  <SocialBtn
+                    onClick={handleGoogleSignIn}
+                    disabled={loading}
+                    label="Continue with Google"
+                    icon={
+                      <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path fill="#4285F4" d="M15.68 8.18c0-.6-.05-1.17-.15-1.73H8v3.27h4.3c-.18 1-.75 1.85-1.6 2.42v2h2.58c1.5-1.4 2.4-3.46 2.4-5.96z" />
+                        <path fill="#34A853" d="M8 16c2.16 0 3.97-.72 5.3-1.94l-2.58-2c-.72.48-1.64.77-2.72.77-2.1 0-3.87-1.4-4.5-3.3H.83v2.07C2.16 14.16 4.88 16 8 16z" />
+                        <path fill="#FBBC05" d="M3.5 9.53c-.16-.48-.25-1-.25-1.53s.1-1.05.25-1.53V4.4H.83C.3 5.46 0 6.7 0 8s.3 2.54.83 3.6l2.67-2.07z" />
+                        <path fill="#EA4335" d="M8 3.18c1.18 0 2.24.4 3.07 1.2l2.3-2.3C11.97.8 10.16 0 8 0 4.88 0 2.16 1.84.83 4.4L3.5 6.47C4.13 4.57 5.9 3.18 8 3.18z" />
+                      </svg>
+                    }
+                  />
+                </div>
+
+                <div className="flex items-center gap-2.5 my-[18px]">
                   <div className="flex-1 h-px bg-border" />
-                  <span className="text-sm text-muted-foreground">or</span>
+                  <div className="text-[11px] font-semibold text-muted-foreground tracking-[0.15em]">OR</div>
                   <div className="flex-1 h-px bg-border" />
                 </div>
-              </>
-            )}
 
-            {/* Email Form */}
-            <form
-              onSubmit={mode === "forgot" ? handleForgotPassword : handleEmailAuth}
-              className="space-y-4"
-            >
-              {/* Email Input */}
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <input
-                  type="email"
-                  placeholder="Email address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                  disabled={loading}
-                />
+                <form onSubmit={handleEmailAuth} className="flex flex-col gap-3.5">
+                  {!isLogin && (
+                    <TextField
+                      label="FIRST NAME"
+                      value={firstName}
+                      onChange={setFirstName}
+                      placeholder="Alex"
+                      autoComplete="given-name"
+                      disabled={loading}
+                    />
+                  )}
+                  <TextField
+                    label="EMAIL"
+                    type="email"
+                    value={email}
+                    onChange={setEmail}
+                    placeholder="you@email.com"
+                    autoComplete="email"
+                    disabled={loading}
+                  />
+                  <TextField
+                    label="PASSWORD"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={setPassword}
+                    placeholder="8+ characters"
+                    autoComplete={isLogin ? "current-password" : "new-password"}
+                    disabled={loading}
+                    right={
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((s) => !s)}
+                        className="bg-transparent border-0 cursor-pointer text-muted-foreground p-1.5"
+                      >
+                        {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                      </button>
+                    }
+                  />
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("forgot")}
+                      className="self-end bg-transparent border-0 cursor-pointer text-accent text-[13px] font-semibold"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </form>
               </div>
 
-              {/* Password Input */}
-              {mode !== "forgot" && (
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-12 py-3.5 rounded-2xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                    disabled={loading}
-                  />
+              <div className="px-6 pb-7 pt-2 flex flex-col gap-3">
+                <PrimaryBtn
+                  type="submit"
+                  onClick={handleEmailAuth as any}
+                  disabled={!email || !password || (!isLogin && !firstName) || loading}
+                >
+                  {loading ? "Please wait..." : isLogin ? "Sign in" : "Create account"}
+                </PrimaryBtn>
+                <div className="text-center text-[13px] text-muted-foreground">
+                  {isLogin ? "New here?" : "Already a member?"}{" "}
                   <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    onClick={() => setMode(isLogin ? "signup" : "login")}
+                    className="bg-transparent border-0 cursor-pointer text-accent font-bold text-[13px] whitespace-nowrap"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {isLogin ? "Create an account" : "Sign in"}
                   </button>
                 </div>
-              )}
-
-              {/* Confirm Password Input (signup only) */}
-              {mode === "signup" && (
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Confirm password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-border bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-accent"
-                    disabled={loading}
-                  />
-                </div>
-              )}
-
-              {/* Forgot Password Link */}
-              {mode === "login" && (
-                <button
-                  type="button"
-                  onClick={() => setMode("forgot")}
-                  className="text-sm text-accent hover:underline"
-                >
-                  Forgot password?
-                </button>
-              )}
-
-              {/* Submit Button */}
-              <CTAButton
-                size="full"
-                type="submit"
-                disabled={loading}
-                className="uppercase font-bold mt-6"
-              >
-                {loading ? "Please wait..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
-              </CTAButton>
-            </form>
-
-            {/* Mode Switch */}
-            <p className="text-center text-muted-foreground mt-6">
-              {mode === "login" && (
-                <>
-                  Don't have an account?{" "}
+                {onSkip && (
                   <button
-                    onClick={() => setMode("signup")}
-                    className="text-accent font-medium hover:underline"
+                    onClick={onSkip}
+                    className="text-xs font-medium text-muted-foreground/70 mt-1"
                   >
-                    Sign up
+                    Skip for now
                   </button>
-                </>
-              )}
-              {mode === "signup" && (
-                <>
-                  Already have an account?{" "}
-                  <button
-                    onClick={() => setMode("login")}
-                    className="text-accent font-medium hover:underline"
-                  >
-                    Sign in
-                  </button>
-                </>
-              )}
-              {mode === "forgot" && (
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-accent font-medium hover:underline"
-                >
-                  Back to sign in
-                </button>
-              )}
-            </p>
-
-            {/* Skip Login */}
-            {onSkip && (
-              <motion.button
-                onClick={onSkip}
-                className="w-full mt-4 py-3 text-muted-foreground hover:text-foreground transition-colors text-sm font-medium"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.3 }}
-              >
-                Skip for now
-              </motion.button>
-            )}
-          </motion.div>
-        </AnimatePresence>
-      </div>
+                )}
+              </div>
+            </>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };
