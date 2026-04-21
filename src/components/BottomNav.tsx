@@ -1,4 +1,4 @@
-import { Home, Map, Wrench, User } from "lucide-react";
+import { Home, BookOpen, LayoutGrid, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -9,8 +9,8 @@ interface BottomNavProps {
 
 const tabs = [
   { id: "home" as const, label: "Home", icon: Home },
-  { id: "maps" as const, label: "Maps", icon: Map },
-  { id: "tools" as const, label: "Tools", icon: Wrench },
+  { id: "maps" as const, label: "Learn", icon: BookOpen },
+  { id: "tools" as const, label: "My Care", icon: LayoutGrid },
   { id: "profile" as const, label: "Profile", icon: User },
 ];
 

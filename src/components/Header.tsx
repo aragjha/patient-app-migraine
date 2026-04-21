@@ -1,6 +1,6 @@
 import { ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
-import logoLight from "@/assets/logo-light.png";
+import logoLight from "@/assets/neurocare-logo.png";
 import ThemeToggle from "./ThemeToggle";
 
 interface HeaderProps {
@@ -40,7 +40,7 @@ const Header = ({
         ) : (
           <motion.img
             src={logoLight}
-            alt="NeuraChamp"
+            alt="NeuroCare"
             className="h-10 w-auto object-contain"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}

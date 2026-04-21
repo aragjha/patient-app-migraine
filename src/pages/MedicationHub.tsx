@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Bell, BellOff, ChevronRight, Edit2 } from "lucide-react";
+import { ChevronLeft, Plus, Bell, BellOff, ChevronRight, Edit2, Lightbulb } from "lucide-react";
 import { Medication, getTimeLabel, getFrequencyLabel, timeOptions, formatDosage, getTypeIcon } from "@/data/medicationContent";
 import MedicationScheduleCard from "@/components/medication/MedicationScheduleCard";
 import CTAButton from "@/components/CTAButton";
+import { WeeklyAdherenceChart, generateMockAdherenceData } from "@/components/AdherenceChart";
 
 interface MedicationHubProps {
   medications: Medication[];
@@ -98,6 +99,18 @@ const MedicationHub = ({
                 transition={{ duration: 0.3, ease: "easeOut" }}
               />
             </div>
+          </div>
+        )}
+
+        {/* Weekly Adherence Chart */}
+        {medications.length > 0 && (
+          <div className="mb-4">
+            <WeeklyAdherenceChart
+              title="Medication Adherence"
+              percentage={Math.round(progressPercent) || 72}
+              data={generateMockAdherenceData()}
+              missedCount={totalDoses - loggedDoses}
+            />
           </div>
         )}
 
@@ -262,6 +275,19 @@ const MedicationHub = ({
           </motion.div>
         )}
       </div>
+
+      {/* Tips */}
+      {medications.length > 0 && (
+        <div className="px-5 pb-4">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Tips</h3>
+          {["Take medications at the same time every day for best results", "Don't skip preventive doses even on headache-free days", "Keep a 2-week supply as backup when traveling"].map((tip, i) => (
+            <div key={i} className="flex items-start gap-2.5 p-2.5 rounded-xl bg-card border border-border/50 mb-1.5">
+              <Lightbulb className="w-3.5 h-3.5 text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-foreground leading-relaxed">{tip}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Sticky Action Button */}
       {medications.length > 0 && view === "schedule" && loggedDoses < totalDoses && (

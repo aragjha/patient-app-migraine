@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import CTAButton from "@/components/CTAButton";
 import ThemeToggle from "@/components/ThemeToggle";
-import logoLight from "@/assets/logo-light.png";
+import logoLight from "@/assets/neurocare-logo.png";
 import { toast } from "sonner";
 import { Mail, Lock, ArrowLeft, Eye, EyeOff } from "lucide-react";
 
@@ -108,7 +108,7 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="min-h-[100dvh] flex flex-col bg-background">
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-safe-top py-4">
         <motion.button
@@ -128,7 +128,7 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip }: AuthPageProps) => {
         {/* Logo */}
         <motion.img
           src={logoLight}
-          alt="NeuraChamp"
+          alt="NeuroCare"
           className="h-16 w-auto object-contain mx-auto mb-8"
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}

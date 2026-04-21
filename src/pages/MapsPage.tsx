@@ -4,19 +4,26 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import LessonDetailPage from "@/pages/LessonDetailPage";
 import { ChevronRight, ChevronDown, MapPin, Info, GitBranch, Compass } from "lucide-react";
-import { 
-  allLessons, 
-  stages, 
-  getSubstagesForStage, 
-  getLessonsBySubstage,
+import {
+  allLessons as pdLessons,
+  stages as pdStages,
+  getSubstagesForStage as pdGetSubstages,
+  getLessonsBySubstage as pdGetLessonsBySubstage,
   type LessonNode,
   type NodeType
 } from "@/data/lessonContent";
+import {
+  allLessons as migraineLessons,
+  stages as migraineStages,
+  getSubstagesForStage as migraineGetSubstages,
+  getLessonsBySubstage as migraineGetLessonsBySubstage,
+} from "@/data/migraineLessonContent";
 
 interface MapsPageProps {
   onNavigate: (tab: "home" | "maps" | "tools" | "profile") => void;
   initialLessonId?: string | null;
   onLessonClose?: () => void;
+  diagnosis?: string | null;
 }
 
 const getNodeTypeIcon = (nodeType: NodeType) => {
@@ -37,9 +44,19 @@ const getNodeTypeColor = (nodeType: NodeType) => {
   }
 };
 
-const MapsPage = ({ onNavigate, initialLessonId, onLessonClose }: MapsPageProps) => {
-  const [activeStage, setActiveStage] = useState("Diagnosis");
-  const [expandedSubstages, setExpandedSubstages] = useState<Set<string>>(new Set(getSubstagesForStage("Diagnosis")));
+const MapsPage = ({ onNavigate, initialLessonId, onLessonClose, diagnosis }: MapsPageProps) => {
+  const isMigraine = diagnosis === "migraine";
+
+  // Select the right data source based on diagnosis
+  const allLessons = isMigraine ? migraineLessons : pdLessons;
+  const stages = isMigraine ? migraineStages : pdStages;
+  const getSubstagesForStage = isMigraine ? migraineGetSubstages : pdGetSubstages;
+  const getLessonsBySubstage = isMigraine ? migraineGetLessonsBySubstage : pdGetLessonsBySubstage;
+
+  const defaultStage = stages[0];
+
+  const [activeStage, setActiveStage] = useState(defaultStage);
+  const [expandedSubstages, setExpandedSubstages] = useState<Set<string>>(new Set(getSubstagesForStage(defaultStage)));
   const [selectedNode, setSelectedNode] = useState<LessonNode | null>(() => {
     if (initialLessonId) {
       return allLessons.find((l) => l.id === initialLessonId) || null;
@@ -107,8 +124,14 @@ const MapsPage = ({ onNavigate, initialLessonId, onLessonClose }: MapsPageProps)
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="text-h1-lg text-foreground">Your Journey Map 🗺️</h1>
-          <p className="text-body text-muted-foreground">Explore at your own pace. Mark where you are.</p>
+          <h1 className="text-h1-lg text-foreground">
+            {isMigraine ? "Migraine Journey 🗺️" : "Your Journey Map 🗺️"}
+          </h1>
+          <p className="text-body text-muted-foreground">
+            {isMigraine
+              ? "Learn about migraine at your own pace."
+              : "Explore at your own pace. Mark where you are."}
+          </p>
         </motion.div>
 
         {/* Legend */}

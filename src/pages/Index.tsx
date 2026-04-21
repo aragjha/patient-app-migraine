@@ -86,6 +86,7 @@ const Index = () => {
 
   // Neura script targeting (set when home tiles/CTAs want Neura to start a specific flow)
   const [neuraInitialScript, setNeuraInitialScript] = useState<ScriptId | null>(null);
+  const [neuraInitialQuery, setNeuraInitialQuery] = useState<string | null>(null);
 
   // Load mock data when demo mode is active
   useEffect(() => {
@@ -137,6 +138,9 @@ const Index = () => {
   }, []);
 
   const handleSplashContinue = () => setCurrentScreen("auth");
+  const [authMode, setAuthMode] = useState<"signup" | "login">("signup");
+  const handleSplashSignIn = () => { setAuthMode("login"); setCurrentScreen("auth"); };
+  const handleSplashGetStarted = () => { setAuthMode("signup"); setCurrentScreen("auth"); };
   const resolvePostAuthScreen = (): AppScreen => {
     const hasConsent = !!localStorage.getItem("nc-consent-at");
     const hasOnboarded = localStorage.getItem("nc-onboarding-complete") === "true";
@@ -187,10 +191,17 @@ const Index = () => {
   const handleStartCheckin = () => { setPreviousScreen(currentScreen); setCurrentScreen("checkin"); };
   const handleCheckinComplete = () => setCurrentScreen("home");
   const handleOpenChat = () => setCurrentScreen("chat");
-  const handleOpenNeuroGPT = () => { setPreviousScreen(currentScreen); setNeuraInitialScript(null); setCurrentScreen("neurogpt"); };
+  const handleOpenNeuroGPT = () => { setPreviousScreen(currentScreen); setNeuraInitialScript(null); setNeuraInitialQuery(null); setCurrentScreen("neurogpt"); };
   const handleOpenNeuraWithScript = (scriptId: ScriptId | null) => {
     setPreviousScreen(currentScreen);
     setNeuraInitialScript(scriptId);
+    setNeuraInitialQuery(null);
+    setCurrentScreen("neurogpt");
+  };
+  const handleOpenNeuraWithQuery = (query: string) => {
+    setPreviousScreen(currentScreen);
+    setNeuraInitialScript(null);
+    setNeuraInitialQuery(query);
     setCurrentScreen("neurogpt");
   };
   const handleLogHeadache = () => { setPreviousScreen(currentScreen); setCurrentScreen("log-headache"); };
@@ -261,7 +272,7 @@ const Index = () => {
   const renderScreen = () => {
     switch (currentScreen) {
       case "splash":
-        return <SplashScreen onContinue={handleSplashContinue} />;
+        return <SplashScreen onContinue={handleSplashGetStarted} onSignIn={handleSplashSignIn} />;
       case "auth":
         return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={handleAuthBack} onSkip={handleSkipToHome} />;
       case "consent":
@@ -315,6 +326,7 @@ const Index = () => {
             onOpenMedications={handleOpenMedications}
             onOpenNeuroGPT={handleOpenNeuroGPT}
             onOpenNeuraWithScript={handleOpenNeuraWithScript}
+            onOpenNeuraWithQuery={handleOpenNeuraWithQuery}
             onOpenDiaries={() => setCurrentScreen("diaries")}
             onLogHeadache={handleLogHeadache}
             activeMigraine={activeMigraine}
@@ -464,11 +476,14 @@ const Index = () => {
           <NeuraChat
             onBack={() => {
               setNeuraInitialScript(null);
+              setNeuraInitialQuery(null);
               setCurrentScreen(previousScreen === "neurogpt" ? "home" : previousScreen);
             }}
             initialScript={neuraInitialScript}
+            initialQuery={neuraInitialQuery}
             onOpenTriggerAnalysis={() => {
               setNeuraInitialScript(null);
+              setNeuraInitialQuery(null);
               handleOpenTriggerAnalysis();
             }}
           />
@@ -476,7 +491,7 @@ const Index = () => {
       case "profile":
         return <ProfilePage onNavigate={handleNavigate} />;
       default:
-        return <SplashScreen onContinue={handleSplashContinue} />;
+        return <SplashScreen onContinue={handleSplashGetStarted} onSignIn={handleSplashSignIn} />;
     }
   };
 

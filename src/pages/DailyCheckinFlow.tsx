@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import OnboardingQuestion from "@/components/OnboardingQuestion";
 import GratificationScreen from "@/components/GratificationScreen";
+import { Diagnosis } from "@/components/OnboardingFlow";
 
-const checkInQuestions = [
+const pdCheckInQuestions = [
   {
     id: "overall",
     title: "How are you feeling overall today?",
@@ -77,12 +78,100 @@ const checkInQuestions = [
   },
 ];
 
+const migraineCheckInQuestions = [
+  {
+    id: "overall",
+    title: "How are you feeling overall today?",
+    helper: "Take a moment to reflect.",
+    type: "slider" as const,
+    options: [],
+  },
+  {
+    id: "headache_today",
+    title: "Did you have a headache today?",
+    helper: "Any head pain counts.",
+    type: "single" as const,
+    options: [
+      { id: "no", label: "No headache", icon: "✨" },
+      { id: "mild", label: "Mild headache", icon: "😐" },
+      { id: "moderate", label: "Moderate migraine", icon: "😣" },
+      { id: "severe", label: "Severe migraine", icon: "😫" },
+    ],
+  },
+  {
+    id: "pain_location",
+    title: "Where was the pain?",
+    helper: "Select all that apply.",
+    type: "multi" as const,
+    options: [
+      { id: "forehead", label: "Forehead", icon: "🔝" },
+      { id: "temples", label: "Temples", icon: "↔️" },
+      { id: "behind_eyes", label: "Behind eyes", icon: "👁️" },
+      { id: "one_side", label: "One side", icon: "◀️" },
+      { id: "both_sides", label: "Both sides", icon: "↔️" },
+      { id: "neck", label: "Neck", icon: "🦴" },
+    ],
+  },
+  {
+    id: "symptoms",
+    title: "Any associated symptoms?",
+    helper: "Select all that apply.",
+    type: "multi" as const,
+    options: [
+      { id: "nausea", label: "Nausea", icon: "🤢" },
+      { id: "light_sensitivity", label: "Light sensitivity", icon: "💡" },
+      { id: "sound_sensitivity", label: "Sound sensitivity", icon: "🔊" },
+      { id: "dizziness", label: "Dizziness", icon: "💫" },
+      { id: "fatigue", label: "Fatigue", icon: "😓" },
+      { id: "none", label: "None", icon: "🎉" },
+    ],
+  },
+  {
+    id: "triggers",
+    title: "Any triggers you noticed?",
+    helper: "Select all that apply.",
+    type: "multi" as const,
+    options: [
+      { id: "stress", label: "Stress", icon: "😰" },
+      { id: "poor_sleep", label: "Poor sleep", icon: "😴" },
+      { id: "skipped_meal", label: "Skipped meal", icon: "🍽️" },
+      { id: "weather", label: "Weather change", icon: "🌦️" },
+      { id: "screen_time", label: "Screen time", icon: "📱" },
+      { id: "unknown", label: "Not sure", icon: "❓" },
+    ],
+  },
+  {
+    id: "medication_taken",
+    title: "Did you take medication today?",
+    type: "single" as const,
+    options: [
+      { id: "yes_helped", label: "Yes, it helped", icon: "✅" },
+      { id: "yes_no_help", label: "Yes, didn't help", icon: "😕" },
+      { id: "no", label: "No medication", icon: "❌" },
+    ],
+  },
+  {
+    id: "disability",
+    title: "How did headaches affect your day?",
+    helper: "Based on MIDAS disability scale.",
+    type: "single" as const,
+    options: [
+      { id: "0", label: "No effect", icon: "0️⃣" },
+      { id: "1", label: "Could manage activities", icon: "1️⃣" },
+      { id: "2", label: "Had difficulty, cancelled some plans", icon: "2️⃣" },
+      { id: "3", label: "Missed work/stayed in bed", icon: "3️⃣" },
+    ],
+  },
+];
+
 interface DailyCheckinFlowProps {
   onComplete: () => void;
   onBack: () => void;
+  diagnosis?: Diagnosis | null;
 }
 
-const DailyCheckinFlow = ({ onComplete, onBack }: DailyCheckinFlowProps) => {
+const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowProps) => {
+  const checkInQuestions = diagnosis === "migraine" ? migraineCheckInQuestions : pdCheckInQuestions;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showGratification, setShowGratification] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string[] | number>>({});
@@ -90,7 +179,6 @@ const DailyCheckinFlow = ({ onComplete, onBack }: DailyCheckinFlowProps) => {
 
   const currentQuestion = checkInQuestions[currentQuestionIndex];
 
-  // Cleanup timer on unmount
   useEffect(() => {
     return () => {
       if (autoAdvanceTimer.current) {
@@ -101,7 +189,7 @@ const DailyCheckinFlow = ({ onComplete, onBack }: DailyCheckinFlowProps) => {
 
   const handleSelect = (id: string) => {
     if (!currentQuestion) return;
-    
+
     if (currentQuestion.type === "multi") {
       const current = (answers[currentQuestion.id] as string[]) || [];
       if (current.includes(id)) {
@@ -110,15 +198,8 @@ const DailyCheckinFlow = ({ onComplete, onBack }: DailyCheckinFlowProps) => {
         setAnswers({ ...answers, [currentQuestion.id]: [...current, id] });
       }
     } else {
-      // Single-select: update answer and auto-advance after delay
       setAnswers({ ...answers, [currentQuestion.id]: [id] });
-      
-      // Clear any existing timer
-      if (autoAdvanceTimer.current) {
-        clearTimeout(autoAdvanceTimer.current);
-      }
-      
-      // Auto-advance after 300ms
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
       autoAdvanceTimer.current = setTimeout(() => {
         handleContinue();
       }, 300);
@@ -149,7 +230,9 @@ const DailyCheckinFlow = ({ onComplete, onBack }: DailyCheckinFlowProps) => {
     return (
       <GratificationScreen
         title="Check-in complete! 🎉"
-        subtitle="You're building healthy habits every day."
+        subtitle={diagnosis === "migraine"
+          ? "Tracking your migraines helps find patterns."
+          : "You're building healthy habits every day."}
         onContinue={onComplete}
         type="celebration"
         ctaText="Back to Home"

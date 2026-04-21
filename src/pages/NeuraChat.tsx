@@ -27,6 +27,7 @@ interface ChatMessage {
 interface NeuraChatProps {
   onBack: () => void;
   initialScript?: ScriptId | null;
+  initialQuery?: string | null;
   contextualGreeting?: string;
   onOpenTriggerAnalysis?: () => void;
 }
@@ -74,6 +75,7 @@ const countRecentAttacks = (referenceDate: Date = new Date("2026-04-15")): numbe
 const NeuraChat = ({
   onBack,
   initialScript = null,
+  initialQuery = null,
   contextualGreeting,
   onOpenTriggerAnalysis,
 }: NeuraChatProps) => {
@@ -110,6 +112,11 @@ const NeuraChat = ({
     // If launched with an initial script, kick it off after a beat
     if (initialScript) {
       const timer = setTimeout(() => startScript(initialScript), 500);
+      return () => clearTimeout(timer);
+    }
+    // If launched with a pre-filled query (e.g. Home's AskAnything bar), auto-send it
+    if (initialQuery) {
+      const timer = setTimeout(() => sendUserMessage(initialQuery), 450);
       return () => clearTimeout(timer);
     }
     // If proactive (3+ attacks), start diary-triggers to let user explore

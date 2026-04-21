@@ -1,175 +1,141 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import CTAButton from "@/components/CTAButton";
-import ThemeToggle from "@/components/ThemeToggle";
-import { Skeleton } from "@/components/ui/skeleton";
-import logoLight from "@/assets/logo-light.png";
-import splashSlide1 from "@/assets/splash-slide-1.png";
-import splashSlide2 from "@/assets/splash-slide-2.png";
-import splashSlide3 from "@/assets/splash-slide-3.png";
+import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 
 interface SplashScreenProps {
   onContinue: () => void;
+  onSignIn?: () => void;
 }
 
-const slides = [
-  {
-    image: splashSlide1,
-    headline: "Reconnect with Joy",
-    subtext: "Comfort through familiar moments daily.",
-  },
-  {
-    image: splashSlide2,
-    headline: "Caregiving Made Simple",
-    subtext: "Know today's condition with clarity.",
-  },
-  {
-    image: splashSlide3,
-    headline: "One Stop Care",
-    subtext: "Medicines, visits, routines in one place.",
-  },
-];
+const SplashScreen = ({ onContinue, onSignIn }: SplashScreenProps) => {
+  const [phase, setPhase] = useState(0);
 
-const SplashScreen = ({ onContinue }: SplashScreenProps) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-  const [loadedImages, setLoadedImages] = useState<Set<number>>(new Set());
-  const [allImagesLoaded, setAllImagesLoaded] = useState(false);
-
-  // Preload all images on mount
   useEffect(() => {
-    const imageUrls = [logoLight, ...slides.map((s) => s.image)];
-    let loadedCount = 0;
-
-    imageUrls.forEach((src, index) => {
-      const img = new Image();
-      img.src = src;
-      img.onload = () => {
-        loadedCount++;
-        if (index > 0) {
-          setLoadedImages((prev) => new Set(prev).add(index - 1));
-        }
-        if (loadedCount === imageUrls.length) {
-          setAllImagesLoaded(true);
-        }
-      };
-    });
+    const t1 = setTimeout(() => setPhase(1), 700);
+    const t2 = setTimeout(() => setPhase(2), 1500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
 
-  // Auto-scroll every 4 seconds (only after images loaded)
-  useEffect(() => {
-    if (!allImagesLoaded) return;
-
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [allImagesLoaded]);
-
-  const isCurrentImageLoaded = loadedImages.has(currentSlide);
-
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      {/* Header: Logo left/center, Theme toggle right - same row */}
-      <div className="flex items-center justify-between pt-6 pb-2 px-6">
-        {/* Spacer for balance */}
-        <div className="w-10" />
-        
-        {/* Logo - centered */}
-        <motion.img
-          src={logoLight}
-          alt="NeuraChamp"
-          className="w-72 h-auto"
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        />
+    <div
+      className="relative min-h-[100dvh] flex flex-col text-white overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(165deg, #0E1220 0%, #1B2A4E 55%, #3B82F6 130%)",
+      }}
+    >
+      {/* Decorative orbs */}
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          top: -80,
+          right: -80,
+          width: 320,
+          height: 320,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(124,58,237,0.55) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }}
+      />
+      <div
+        className="absolute pointer-events-none"
+        style={{
+          bottom: 120,
+          left: -60,
+          width: 280,
+          height: 280,
+          borderRadius: "50%",
+          background:
+            "radial-gradient(circle, rgba(255,107,92,0.40) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }}
+      />
 
-        {/* Theme Toggle - right aligned */}
-        <ThemeToggle />
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-6 px-8">
+        {/* Glyph */}
+        <motion.div
+          initial={{ scale: 0.6, opacity: 0 }}
+          animate={{ scale: phase >= 0 ? 1 : 0.6, opacity: phase >= 0 ? 1 : 0 }}
+          transition={{ duration: 0.6, ease: [0.2, 0.9, 0.3, 1.3] }}
+          className="w-[108px] h-[108px] rounded-[32px] flex items-center justify-center"
+          style={{
+            background: "linear-gradient(135deg, #fff 0%, #DBEAFE 100%)",
+            boxShadow: "0 20px 60px rgba(59,130,246,0.45)",
+          }}
+        >
+          <svg width="56" height="56" viewBox="0 0 56 56" fill="none">
+            <path
+              d="M14 36 C14 24, 22 16, 28 16 C34 16, 42 24, 42 36"
+              stroke="#1B2A4E"
+              strokeWidth="3.5"
+              strokeLinecap="round"
+            />
+            <circle cx="28" cy="28" r="4" fill="#3B82F6" />
+            <path
+              d="M20 40 L28 32 L36 40"
+              stroke="#7C3AED"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </motion.div>
+
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: phase >= 1 ? 1 : 0, y: phase >= 1 ? 0 : 8 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <div
+            className="text-[44px] font-semibold leading-none tracking-tight"
+            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+          >
+            NeuroCare
+          </div>
+          <div className="mt-2.5 text-[12px] font-bold tracking-[0.3em] opacity-70">
+            MIGRAINE · MAPPED
+          </div>
+        </motion.div>
+
+        <motion.p
+          className="text-center max-w-[280px] text-[15px] leading-[1.5] text-white/75"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: phase >= 1 ? 1 : 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+        >
+          Understand your headaches with an AI companion that listens, not judges.
+        </motion.p>
       </div>
 
-      {/* Tagline */}
-      <motion.p
-        className="text-xs font-semibold tracking-[0.2em] text-muted-foreground uppercase text-center mt-2 mb-8"
-        initial={{ opacity: 0, y: 5 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.4 }}
+      {/* CTAs */}
+      <motion.div
+        className="relative z-10 px-6 pb-12 flex flex-col gap-3"
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: phase >= 2 ? 1 : 0, y: phase >= 2 ? 0 : 16 }}
+        transition={{ duration: 0.5 }}
       >
-        NEURO CARE REDEFINED
-      </motion.p>
-
-      {/* Carousel */}
-      <div className="flex-1 flex flex-col px-6">
-        <div className="flex flex-col gap-5">
-          {/* Image Carousel */}
-          <div className="relative w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-xl">
-            {!isCurrentImageLoaded && (
-              <Skeleton className="absolute inset-0 w-full h-full" />
-            )}
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={currentSlide}
-                src={slides[currentSlide].image}
-                alt={slides[currentSlide].headline}
-                className="absolute inset-0 w-full h-full object-cover"
-                initial={{ opacity: 0, x: 50 }}
-                animate={{ opacity: isCurrentImageLoaded ? 1 : 0, x: 0 }}
-                exit={{ opacity: 0, x: -50 }}
-                transition={{ duration: 0.5 }}
-                loading="eager"
-                decoding="async"
-              />
-            </AnimatePresence>
-
-            {/* Gradient overlay for text readability */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
-          </div>
-
-          {/* Text Content */}
-          <div className="text-center">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentSlide}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-              >
-                <h1 className="text-2xl font-bold text-foreground mb-2">
-                  {slides[currentSlide].headline}
-                </h1>
-                <p className="text-base text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                  {slides[currentSlide].subtext}
-                </p>
-              </motion.div>
-            </AnimatePresence>
-          </div>
-
-          {/* Dots Indicator */}
-          <div className="flex justify-center gap-2.5 mt-2">
-            {slides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentSlide(index)}
-                className={`h-2.5 rounded-full transition-all duration-300 ${
-                  index === currentSlide
-                    ? "bg-accent w-8"
-                    : "bg-muted w-2.5 hover:bg-muted-foreground/50"
-                }`}
-                aria-label={`Go to slide ${index + 1}`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* CTA Button */}
-      <div className="px-6 pb-safe-bottom mb-8 mt-auto pt-6">
-        <CTAButton size="full" onClick={onContinue} className="uppercase font-bold">
-          Get Started
-        </CTAButton>
-      </div>
+        <button
+          onClick={onContinue}
+          className="w-full h-14 rounded-[28px] border-0 cursor-pointer text-white text-base font-bold flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          style={{
+            background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)",
+            boxShadow: "0 8px 22px rgba(59,130,246,0.32)",
+          }}
+        >
+          Get started
+        </button>
+        <button
+          onClick={onSignIn ?? onContinue}
+          className="h-13 py-3.5 bg-transparent border-0 cursor-pointer text-white/85 text-[15px] font-semibold"
+        >
+          I already have an account
+        </button>
+      </motion.div>
     </div>
   );
 };
