@@ -24,6 +24,7 @@ import ConsentScreen from "@/components/ConsentScreen";
 import LogHeadacheFlow from "@/pages/LogHeadacheFlow";
 import PainReliefGuide from "@/pages/PainReliefGuide";
 import TriggerMedicationFlow from "@/pages/TriggerMedicationFlow";
+import TriggerAnalysis from "@/pages/TriggerAnalysis";
 import { getTodaysLesson } from "@/data/lessonContent";
 import { getDiaryById } from "@/data/diaryContent";
 import { getMigraineDiaryById } from "@/data/migraineDiaryContent";
@@ -54,7 +55,8 @@ type AppScreen =
   | "appointments"
   | "log-headache"
   | "trigger-medication"
-  | "pain-relief";
+  | "pain-relief"
+  | "trigger-analysis";
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("splash");
@@ -161,6 +163,7 @@ const Index = () => {
   const handleLogHeadache = () => { setPreviousScreen(currentScreen); setCurrentScreen("log-headache"); };
   const handleOpenTriggerMedication = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-medication"); };
   const handleOpenPainRelief = () => { setPreviousScreen(currentScreen); setCurrentScreen("pain-relief"); };
+  const handleOpenTriggerAnalysis = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-analysis"); };
 
   const handleOpenAppointments = () => {
     setPreviousScreen(currentScreen);
@@ -279,6 +282,7 @@ const Index = () => {
             onToggleMode={handleToggleMode}
             onOpenTriggerMedication={handleOpenTriggerMedication}
             onOpenPainRelief={handleOpenPainRelief}
+            onOpenTriggerAnalysis={handleOpenTriggerAnalysis}
           />
         );
       case "home-off":
@@ -402,6 +406,12 @@ const Index = () => {
         return (
           <PainReliefGuide
             onBack={() => setCurrentScreen(previousScreen === "pain-relief" ? "home" : previousScreen)}
+          />
+        );
+      case "trigger-analysis":
+        return (
+          <TriggerAnalysis
+            onBack={() => setCurrentScreen(previousScreen === "trigger-analysis" ? "home" : previousScreen)}
           />
         );
       case "chat":

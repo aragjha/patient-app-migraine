@@ -3,9 +3,11 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import OnOffToggle from "@/components/OnOffToggle";
 import RewardsCard from "@/components/RewardsCard";
+import TriggerDiscoveryCard from "@/components/TriggerDiscoveryCard";
 import { Diagnosis } from "@/components/OnboardingFlow";
 import { ActiveMigraineTimer, PainHistoryChart, generateMockHeadacheHistory } from "@/components/PainHistory";
 import { mockRewards } from "@/data/mockUserData";
+import { getInsightsFromMockData } from "@/data/triggerAnalysisEngine";
 import {
   Search,
   Mic,
@@ -41,6 +43,7 @@ interface HomeHubProps {
   onToggleMode: (isOn: boolean) => void;
   onOpenTriggerMedication?: () => void;
   onOpenPainRelief?: () => void;
+  onOpenTriggerAnalysis?: () => void;
 }
 
 const HomeHub = ({
@@ -60,8 +63,10 @@ const HomeHub = ({
   onToggleMode,
   onOpenTriggerMedication,
   onOpenPainRelief,
+  onOpenTriggerAnalysis,
 }: HomeHubProps) => {
   const isMigraine = diagnosis === "migraine";
+  const insights = isMigraine ? getInsightsFromMockData() : null;
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -123,6 +128,27 @@ const HomeHub = ({
             <Mic className="w-3.5 h-3.5 text-accent" />
           </div>
         </motion.button>
+
+        {/* Trigger Discovery — primary visual anchor for migraine users */}
+        {isMigraine && insights && (
+          <motion.div
+            className="mb-4"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: d * 2.5 }}
+          >
+            <TriggerDiscoveryCard
+              hasEnoughData={insights.hasEnoughData}
+              progress={insights.progress}
+              topTriggers={insights.topTriggers}
+              coOccurrence={insights.coOccurrence}
+              totalAttacks={insights.monthlyInsights.attackCount + 10 /* approximate last period */}
+              onLogHeadache={onLogHeadache ?? (() => {})}
+              onLearnMore={onOpenLesson ?? (() => {})}
+              onViewAnalysis={onOpenTriggerAnalysis ?? (() => {})}
+            />
+          </motion.div>
+        )}
 
         {/* LOG HEADACHE — Bold Primary CTA */}
         {isMigraine && (
