@@ -4,6 +4,7 @@ import BottomNav from "@/components/BottomNav";
 import OnOffToggle from "@/components/OnOffToggle";
 import RewardsCard from "@/components/RewardsCard";
 import TriggerDiscoveryCard from "@/components/TriggerDiscoveryCard";
+import NeuraEntryCard from "@/components/NeuraEntryCard";
 import { Diagnosis } from "@/components/OnboardingFlow";
 import { ActiveMigraineTimer, PainHistoryChart, generateMockHeadacheHistory } from "@/components/PainHistory";
 import { mockRewards } from "@/data/mockUserData";
@@ -113,21 +114,15 @@ const HomeHub = ({
           </p>
         </motion.div>
 
-        {/* Search Bar → NeuroGPT */}
-        <motion.button
-          onClick={onOpenNeuroGPT}
-          className="w-full mb-4 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-border shadow-sm"
+        {/* Neura entry card (replaces old search bar) */}
+        <motion.div
+          className="mb-4"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: d * 2 }}
-          whileTap={{ scale: 0.99 }}
         >
-          <Search className="w-4 h-4 text-muted-foreground" />
-          <span className="flex-1 text-left text-xs text-muted-foreground">Ask anything about your health...</span>
-          <div className="w-7 h-7 rounded-full bg-accent/15 flex items-center justify-center">
-            <Mic className="w-3.5 h-3.5 text-accent" />
-          </div>
-        </motion.button>
+          <NeuraEntryCard onOpen={() => onOpenNeuroGPT?.()} />
+        </motion.div>
 
         {/* Trigger Discovery — primary visual anchor for migraine users */}
         {isMigraine && insights && (

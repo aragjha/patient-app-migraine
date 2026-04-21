@@ -14,6 +14,7 @@ import MapsPage from "@/pages/MapsPage";
 import ToolsHub from "@/pages/ToolsHub";
 import NeuroQueryChat from "@/pages/NeuroQueryChat";
 import NeuroGPTChat from "@/pages/NeuroGPTChat";
+import NeuraChat from "@/pages/NeuraChat";
 import ProfilePage from "@/pages/ProfilePage";
 import MedicationOnboarding from "@/pages/MedicationOnboarding";
 import MedicationHub from "@/pages/MedicationHub";
@@ -417,7 +418,7 @@ const Index = () => {
       case "chat":
         return <NeuroQueryChat onNavigate={handleNavigate} />;
       case "neurogpt":
-        return <NeuroGPTChat onBack={() => setCurrentScreen("home")} />;
+        return <NeuraChat onBack={() => setCurrentScreen(previousScreen === "neurogpt" ? "home" : previousScreen)} />;
       case "profile":
         return <ProfilePage onNavigate={handleNavigate} />;
       default:
