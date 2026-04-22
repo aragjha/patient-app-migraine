@@ -92,7 +92,7 @@ const MonthCalendar = ({ attacks, checkins }: { attacks: Record<number, number>;
               style={{
                 background: p
                   ? `rgba(255,107,92,${0.18 + (p / 10) * 0.4})`
-                  : "hsl(var(--muted))",
+                  : "var(--bg-deep)",
                 border: today ? "2px solid hsl(var(--foreground))" : undefined,
               }}
             >
@@ -100,12 +100,12 @@ const MonthCalendar = ({ attacks, checkins }: { attacks: Record<number, number>;
                 className={`text-[11px] ${
                   today ? "font-extrabold" : "font-semibold"
                 }`}
-                style={{ color: p ? "#E8594C" : "hsl(var(--foreground))" }}
+                style={{ color: p ? "#FF6B5C" : "hsl(var(--foreground))" }}
               >
                 {d}
               </div>
               {p !== undefined && (
-                <div className="text-[8px] text-[#E8594C] font-bold tabular-nums">{p}/10</div>
+                <div className="text-[8px] text-[#FF6B5C] font-bold tabular-nums">{p}/10</div>
               )}
               {c && p === undefined && (
                 <div className="w-1 h-1 rounded-full bg-accent mt-0.5" />
@@ -133,11 +133,11 @@ const AttackList = ({ items }: { items: { d: string; pain: number; dur: string; 
         >
           <div
             className="text-base font-extrabold"
-            style={{ color: "#E8594C", fontFamily: "'Fraunces', Georgia, serif" }}
+            style={{ color: "#FF6B5C", fontFamily: "'Fraunces', Georgia, serif" }}
           >
             {a.pain}
           </div>
-          <div className="text-[8px] font-semibold" style={{ color: "#E8594C" }}>/ 10</div>
+          <div className="text-[8px] font-semibold" style={{ color: "#FF6B5C" }}>/ 10</div>
         </div>
         <div className="flex-1">
           <div className="text-sm font-bold text-foreground">
@@ -188,10 +188,13 @@ const DiariesHub = ({
             Your story
           </div>
           <h1
-            className="text-[40px] font-medium tracking-tight leading-[1.02] text-foreground m-0"
-            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+            className="text-[40px] font-semibold leading-[1.02] text-foreground m-0"
+            style={{
+              fontFamily: "'Fraunces', Georgia, serif",
+              letterSpacing: "-0.03em",
+            }}
           >
-            April, in <em className="italic text-accent font-extrabold">patterns</em>
+            April, in <em className="italic text-accent">patterns</em>
           </h1>
           <p className="text-muted-foreground text-[13px] mt-1 mb-5">
             Clinician-readable. Export anytime.

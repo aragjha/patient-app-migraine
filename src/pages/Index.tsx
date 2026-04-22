@@ -462,6 +462,7 @@ const Index = () => {
               // Smart dark mode
               if (localStorage.getItem("smart-dark-mode") === "true") {
                 document.documentElement.classList.add("dark");
+                document.documentElement.setAttribute("data-theme", "dark");
                 localStorage.setItem("theme", "dark");
               }
               setCurrentScreen("home");
@@ -504,6 +505,12 @@ const Index = () => {
               setNeuraInitialScript(null);
               setNeuraInitialQuery(null);
               handleOpenTriggerAnalysis();
+            }}
+            onNavigate={handleNavigate}
+            onOpenDiary={() => setCurrentScreen("diaries")}
+            onLog={() => {
+              setPreviousScreen("neurogpt");
+              handleOpenNeuraWithScript("headache-log");
             }}
           />
         );

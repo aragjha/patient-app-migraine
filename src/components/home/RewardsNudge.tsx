@@ -33,7 +33,7 @@ const RewardsNudge = ({
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-[13px] font-bold text-[#6B4E1A]">
-          {pointsToNext} pts to "{nextTierName}"
+          {pointsToNext} pts to &ldquo;{nextTierName}&rdquo;
         </div>
         <div className="text-[11px] text-[#8F6A20] mt-0.5 truncate">{perk}</div>
       </div>

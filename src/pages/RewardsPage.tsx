@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
-  ChevronLeft,
+  X,
   Flame,
   Check,
   Sparkles,
@@ -136,7 +136,10 @@ const TierTrack = ({ points }: { points: number }) => {
             · tier {curIdx + 1} of {TIERS.length}
           </span>
         </div>
-        <div className="text-[11px] text-muted-foreground tabular-nums">
+        <div
+          className="text-[11px] text-muted-foreground tabular-nums"
+          style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
+        >
           {cur.to - points} pts to {nextTier.name}
         </div>
       </div>
@@ -162,7 +165,10 @@ const TierTrack = ({ points }: { points: number }) => {
                 className="w-2.5 h-2.5 rounded-full border-2 border-card"
                 style={{ background: unlocked ? t.accent : "hsl(var(--border))" }}
               />
-              <div className="text-[8.5px] text-muted-foreground font-semibold tabular-nums">
+              <div
+                className="text-[8.5px] text-muted-foreground font-semibold tabular-nums"
+                style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
+              >
                 {t.from}
               </div>
             </div>
@@ -262,7 +268,7 @@ const RewardsPage = ({ onBack, onOpenNeura, onOpenNeuraWithScript }: RewardsPage
   };
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
+    <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col">
       <style>{`
         @keyframes pointsPop {
           0% { transform: scale(1); }
@@ -271,20 +277,35 @@ const RewardsPage = ({ onBack, onOpenNeura, onOpenNeuraWithScript }: RewardsPage
         }
       `}</style>
 
-      {/* Header */}
+      {/* Modal shell — close + step + progress */}
       <div className="px-5 pt-14 pb-3 flex items-center gap-3">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:bg-muted/70"
-          aria-label="Back"
+          className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-0"
+          style={{ background: "var(--bg-deep)", color: "var(--ink)" }}
+          aria-label="Close"
         >
-          <ChevronLeft className="w-5 h-5" strokeWidth={2.2} />
+          <X className="w-[18px] h-[18px]" strokeWidth={2.2} />
         </button>
+        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--bg-deep)" }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: "100%",
+              background: "linear-gradient(90deg, var(--nc-accent), var(--plum))",
+            }}
+          />
+        </div>
         <div
-          className="text-lg font-bold text-foreground"
-          style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+          className="text-[11px] font-bold tabular-nums"
+          style={{
+            color: "var(--nc-muted)",
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            minWidth: 28,
+            textAlign: "right",
+          }}
         >
-          Rewards
+          1/1
         </div>
       </div>
 
@@ -295,8 +316,8 @@ const RewardsPage = ({ onBack, onOpenNeura, onOpenNeuraWithScript }: RewardsPage
       >
         {/* Hero */}
         <div
-          className="relative overflow-hidden rounded-[28px] p-5 pb-6 text-white mb-3.5"
-          style={{ background: cur.bg }}
+          className="relative overflow-hidden rounded-[28px] text-white mb-3.5"
+          style={{ background: cur.bg, padding: "22px 22px 24px" }}
         >
           <div
             className="absolute pointer-events-none"
@@ -441,6 +462,7 @@ const RewardsPage = ({ onBack, onOpenNeura, onOpenNeuraWithScript }: RewardsPage
                   className="text-xs font-bold tabular-nums"
                   style={{
                     color: q.done ? "hsl(var(--muted-foreground))" : "hsl(var(--accent))",
+                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
                   }}
                 >
                   +{q.pts}

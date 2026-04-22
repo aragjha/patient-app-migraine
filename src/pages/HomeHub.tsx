@@ -189,10 +189,9 @@ const HomeHub = ({
             {getGreeting()} · {formatDate(new Date())}
           </div>
           <h1
-            className="text-[40px] leading-[1.05] font-extrabold tracking-tight text-foreground m-0"
-            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+            className="display text-[42px] text-foreground m-0"
           >
-            How's your <em className="italic text-accent font-extrabold">head</em>
+            How's your <em className="italic text-accent">head</em>
             <br />
             today?
           </h1>

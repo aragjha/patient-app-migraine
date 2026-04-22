@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, Plus, Pill, Check } from "lucide-react";
+import { X, Plus, Pill, Check } from "lucide-react";
 import { Medication } from "@/data/medicationContent";
 
 /**
@@ -88,21 +88,36 @@ const MedicationHub = ({
   const dayName = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   return (
-    <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-2 flex items-center gap-3">
+    <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col">
+      {/* Modal shell — close + step + progress */}
+      <div className="px-5 pt-14 pb-3 flex items-center gap-3">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:bg-muted/70"
-          aria-label="Back"
+          className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-0"
+          style={{ background: "var(--bg-deep)", color: "var(--ink)" }}
+          aria-label="Close"
         >
-          <ChevronLeft className="w-5 h-5" strokeWidth={2.2} />
+          <X className="w-[18px] h-[18px]" strokeWidth={2.2} />
         </button>
+        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--bg-deep)" }}>
+          <div
+            className="h-full rounded-full"
+            style={{
+              width: "100%",
+              background: "linear-gradient(90deg, var(--nc-accent), var(--plum))",
+            }}
+          />
+        </div>
         <div
-          className="text-lg font-bold text-foreground"
-          style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+          className="text-[11px] font-bold tabular-nums"
+          style={{
+            color: "var(--nc-muted)",
+            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+            minWidth: 28,
+            textAlign: "right",
+          }}
         >
-          Medications
+          1/1
         </div>
       </div>
 
@@ -120,7 +135,7 @@ const MedicationHub = ({
         >
           What to take,
           <br />
-          <em className="italic text-accent font-extrabold">when</em>.
+          <em className="italic text-accent">when</em>.
         </h2>
 
         {/* Adherence heatmap */}
@@ -154,7 +169,7 @@ const MedicationHub = ({
                       : d.status === "partial"
                       ? "#FBBF24"
                       : d.status === "missed"
-                      ? "hsl(var(--muted))"
+                      ? "#E5E7EB"
                       : "transparent",
                   border: d.status === "today" ? "2px solid hsl(var(--foreground))" : 0,
                   opacity: d.status === "taken" ? 0.85 : 1,
@@ -163,7 +178,7 @@ const MedicationHub = ({
             ))}
           </div>
           <div className="flex justify-between text-[10px] text-muted-foreground mt-2.5">
-            <span>Mar 25</span>
+            <span>Mar 24</span>
             <div className="flex gap-2.5">
               <span className="flex items-center gap-1">
                 <span className="inline-block w-2 h-2 rounded-sm bg-[#22C55E]" />

@@ -34,7 +34,13 @@ const PatternInsightCard = ({
       <div className="bg-card rounded-3xl border border-border p-5">
         <div className="flex justify-between items-start mb-4">
           <div>
-            <div className="text-4xl font-extrabold text-foreground leading-none tracking-tight">
+            <div
+              className="text-[36px] font-extrabold text-foreground leading-none"
+              style={{
+                fontFamily: "'Fraunces', Georgia, serif",
+                letterSpacing: "-0.02em",
+              }}
+            >
               {attacksThisMonth}
               <span className="text-xl text-muted-foreground font-medium">/mo</span>
             </div>
@@ -43,7 +49,7 @@ const PatternInsightCard = ({
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">
                 ↓ {deltaPercent}%
               </span>{" "}
-              vs last month
+              vs March
             </div>
           </div>
           <div className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 px-2.5 py-1 rounded-full text-[10px] font-bold flex items-center gap-1">

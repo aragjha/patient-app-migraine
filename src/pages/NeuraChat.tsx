@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Mic, Send, Sparkles } from "lucide-react";
+import { ArrowLeft, Mic, Send, Sparkles, Zap, Check, BookOpen, ChevronRight, Moon } from "lucide-react";
+import BottomNav from "@/components/BottomNav";
 import NeuraAvatar from "@/components/NeuraAvatar";
 import VoiceOverlay from "@/components/neura/VoiceOverlay";
 import NeuraInlineWidget, { WidgetConfig, WidgetSubmission } from "@/components/NeuraInlineWidget";
@@ -31,6 +32,9 @@ interface NeuraChatProps {
   initialQuery?: string | null;
   contextualGreeting?: string;
   onOpenTriggerAnalysis?: () => void;
+  onNavigate?: (tab: "home" | "maps" | "tools" | "profile") => void;
+  onOpenDiary?: () => void;
+  onLog?: () => void;
 }
 
 // Map trigger IDs (used in mock data) to human labels for chat display.
@@ -79,6 +83,9 @@ const NeuraChat = ({
   initialQuery = null,
   contextualGreeting,
   onOpenTriggerAnalysis,
+  onNavigate,
+  onOpenDiary,
+  onLog,
 }: NeuraChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -87,47 +94,70 @@ const NeuraChat = ({
   const [isTyping, setIsTyping] = useState(false);
   const [modalContent, setModalContent] = useState<NeuraContent | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  // Empty-state mode: only render starter layout when we have no greeting yet.
+  // We suppress the mount-time greeting when launched with no initial script/query
+  // so the editorial starter screen shows per the prototype.
+  const [emptyState, setEmptyState] = useState<boolean>(
+    !initialScript && !initialQuery,
+  );
 
   // Script engine state
   const [activeScript, setActiveScript] = useState<ScriptId | null>(null);
   const [scriptStepIdx, setScriptStepIdx] = useState(0);
 
-  // Seed greeting + optional proactive prompt or initial script once on mount
+  // Seed greeting + optional proactive prompt or initial script once on mount.
+  // When launched without any initial intent, leave `messages` empty so the
+  // empty-state editorial layout (prototype) renders.
   useEffect(() => {
-    const recentAttackCount = countRecentAttacks();
-    const greeting: ChatMessage = {
-      id: "greet-1",
-      role: "neura",
-      blocks: [
-        {
-          type: "text",
-          text:
-            contextualGreeting ??
-            (recentAttackCount >= 3
-              ? `You've had ${recentAttackCount} attacks this week. Want to explore what triggered them?`
-              : "Hey! How's your head today?"),
-        },
-      ],
-    };
-    setMessages([greeting]);
-
-    // If launched with an initial script, kick it off after a beat
     if (initialScript) {
+      setEmptyState(false);
+      // Seed with a contextual greeting so the script has a lead-in bubble.
+      setMessages([
+        {
+          id: "greet-1",
+          role: "neura",
+          blocks: [
+            {
+              type: "text",
+              text:
+                contextualGreeting ?? "Hey! How's your head today?",
+            },
+          ],
+        },
+      ]);
       const timer = setTimeout(() => startScript(initialScript), 500);
       return () => clearTimeout(timer);
     }
-    // If launched with a pre-filled query (e.g. Home's AskAnything bar), auto-send it
     if (initialQuery) {
+      setEmptyState(false);
+      setMessages([
+        {
+          id: "greet-1",
+          role: "neura",
+          blocks: [
+            {
+              type: "text",
+              text:
+                contextualGreeting ?? "Hey! How's your head today?",
+            },
+          ],
+        },
+      ]);
       const timer = setTimeout(() => sendUserMessage(initialQuery), 450);
       return () => clearTimeout(timer);
     }
-    // If proactive (3+ attacks), start diary-triggers to let user explore
-    if (!initialScript && recentAttackCount >= 3) {
-      const timer = setTimeout(() => startScript("diary-triggers"), 800);
-      return () => clearTimeout(timer);
-    }
+    // Otherwise stay empty (empty-state renders).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const exitEmpty = () => setEmptyState(false);
+
+  const handleClearChat = () => {
+    setMessages([]);
+    setActiveScript(null);
+    setScriptStepIdx(0);
+    setEmptyState(true);
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -230,6 +260,7 @@ const NeuraChat = ({
   const startScript = (scriptId: ScriptId) => {
     const script = getScript(scriptId);
     if (!script) return;
+    setEmptyState(false);
 
     // Trigger insights: special-case — surface a real insight using mock stats,
     // plus an action affordance to open the full trigger analysis page.
@@ -318,6 +349,7 @@ const NeuraChat = ({
   const sendUserMessage = (text: string) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    setEmptyState(false);
     appendUser(trimmed);
     setInput("");
 
@@ -423,14 +455,32 @@ const NeuraChat = ({
     idx: number
   ) => {
     if (block.type === "text") {
+      if (role === "user") {
+        return (
+          <div
+            key={idx}
+            className="text-sm leading-[1.4] max-w-[82%] text-white"
+            style={{
+              background: "var(--ink)",
+              padding: "11px 14px",
+              borderRadius: "18px 18px 6px 18px",
+            }}
+          >
+            {block.text}
+          </div>
+        );
+      }
       return (
         <div
           key={idx}
-          className={`px-3.5 py-2.5 rounded-2xl text-sm leading-relaxed max-w-[88%] ${
-            role === "user"
-              ? "bg-accent text-accent-foreground rounded-br-md"
-              : "bg-card border border-border text-foreground rounded-bl-md shadow-sm-soft"
-          }`}
+          className="text-sm leading-[1.4] max-w-[82%] text-foreground"
+          style={{
+            background: "var(--nc-card)",
+            border: "1px solid var(--nc-border)",
+            padding: "11px 14px",
+            borderRadius: "18px 18px 18px 6px",
+            boxShadow: "var(--shadow-sm-proto)",
+          }}
         >
           {block.text}
         </div>
@@ -493,39 +543,57 @@ const NeuraChat = ({
             <ArrowLeft className="w-5 h-5 text-foreground" strokeWidth={2.2} />
           </button>
           <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-white"
+            className="flex items-center justify-center text-white shrink-0"
             style={{
+              width: 38,
+              height: 38,
+              borderRadius: 12,
               background: "linear-gradient(135deg, #1B2A4E 0%, #7C3AED 50%, #3B82F6 100%)",
               boxShadow: "0 4px 14px rgba(59,130,246,0.35)",
             }}
           >
-            <Sparkles className="w-[18px] h-[18px]" strokeWidth={2} />
+            <Sparkles className="w-4 h-4" strokeWidth={2.4} />
           </div>
-          <div className="flex-1 leading-tight">
+          <div className="flex-1 leading-tight min-w-0">
             <div
-              className="text-[17px] font-extrabold text-foreground"
-              style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+              className="text-[15px] font-bold text-foreground"
             >
               Neura
             </div>
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-              {(micActive || isTyping) && (
-                <span className="inline-flex gap-[3px]">
-                  {[0, 1, 2].map((i) => (
-                    <motion.span
-                      key={i}
-                      className="w-[4px] h-[4px] rounded-full bg-accent"
-                      animate={{ opacity: [0.3, 1, 0.3] }}
-                      transition={{ duration: 1, repeat: Infinity, delay: i * 0.18 }}
-                    />
-                  ))}
-                </span>
+            <div
+              className="flex items-center gap-1.5 text-[10px]"
+              style={{
+                color: "var(--green)",
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              }}
+            >
+              <span
+                className="inline-block shrink-0"
+                style={{
+                  width: 5,
+                  height: 5,
+                  borderRadius: "50%",
+                  background: "var(--green)",
+                }}
+              />
+              {activeScript ? (
+                <span>Running · {getScript(activeScript).name}</span>
+              ) : micActive ? (
+                <span>Listening…</span>
+              ) : isTyping ? (
+                <span>Thinking…</span>
+              ) : (
+                <span>Trained on your 43 logs</span>
               )}
-              <span>{micActive ? "Listening…" : isTyping ? "Thinking…" : "Online · tap anything"}</span>
             </div>
           </div>
           {/* Tap ↔ Speak mode toggle */}
-          <div className="flex items-center gap-0.5 bg-muted p-0.5 rounded-full" role="group" aria-label="Input mode">
+          <div
+            className="flex items-center gap-0.5 rounded-full"
+            role="group"
+            aria-label="Input mode"
+            style={{ background: "var(--bg-deep)", padding: 3 }}
+          >
             {(["tap", "speak"] as const).map((m) => (
               <button
                 key={m}
@@ -534,17 +602,40 @@ const NeuraChat = ({
                   if (m === "speak") setMicActive(true);
                   else setMicActive(false);
                 }}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
-                  inputMode === m
-                    ? "bg-card text-foreground shadow-sm-soft"
-                    : "text-muted-foreground"
-                }`}
+                className="flex items-center justify-center border-0 cursor-pointer"
+                style={{
+                  width: 30,
+                  height: 28,
+                  borderRadius: 999,
+                  background: inputMode === m ? "var(--ink)" : "transparent",
+                  color: inputMode === m ? "#fff" : "var(--nc-muted)",
+                  transition: "background .15s",
+                }}
                 aria-pressed={inputMode === m}
+                title={m === "tap" ? "Tap mode" : "Speak mode"}
               >
-                {m === "tap" ? "Tap" : "Speak"}
+                {m === "tap" ? (
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M9 11V6a3 3 0 0 1 6 0v5" />
+                    <path d="M9 11v3a3 3 0 0 0 6 0v-3" />
+                    <path d="M7 14v1a5 5 0 0 0 10 0v-1" />
+                  </svg>
+                ) : (
+                  <Mic style={{ width: 13, height: 13 }} strokeWidth={2.2} />
+                )}
               </button>
             ))}
           </div>
+          {!emptyState && messages.length > 0 && (
+            <button
+              onClick={handleClearChat}
+              className="border-0 bg-transparent cursor-pointer text-muted-foreground"
+              style={{ fontSize: 11, fontWeight: 600, padding: "4px 6px" }}
+              title="Clear conversation"
+            >
+              Clear
+            </button>
+          )}
         </div>
       </div>
 
@@ -562,6 +653,164 @@ const NeuraChat = ({
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 px-4 py-4 overflow-y-auto pb-56 scroll-smooth">
+        {emptyState && messages.length === 0 && !activeScript && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="pt-1"
+          >
+            <h2
+              className="text-foreground"
+              style={{
+                fontFamily: "'Fraunces', Georgia, serif",
+                fontWeight: 600,
+                fontSize: 32,
+                letterSpacing: "-0.035em",
+                lineHeight: 1,
+                margin: "12px 4px 14px",
+              }}
+            >
+              A clinician
+              <br />
+              in your{" "}
+              <em className="italic" style={{ color: "var(--nc-accent)" }}>
+                pocket
+              </em>
+              .
+            </h2>
+            <p
+              className="text-muted-foreground"
+              style={{
+                fontSize: 13,
+                margin: "0 4px 18px",
+                lineHeight: 1.5,
+              }}
+            >
+              Speaks from your diary. Can log a headache, run your check-in,
+              or surface patterns.
+            </p>
+            <div
+              className="eyebrow"
+              style={{ marginBottom: 8, marginLeft: 4 }}
+            >
+              Guided
+            </div>
+            <div className="flex flex-col gap-1.5 mb-4">
+              {(
+                [
+                  {
+                    id: "headache-log" as ScriptId,
+                    label: "Log a headache",
+                    sub: "~30s · 5 questions",
+                    Icon: Zap,
+                  },
+                  {
+                    id: "daily-checkin" as ScriptId,
+                    label: "Daily check-in",
+                    sub: "~60s · 3 questions",
+                    Icon: Check,
+                  },
+                  {
+                    id: "diary-triggers" as ScriptId,
+                    label: "Trigger diary",
+                    sub: "This week · 1 question",
+                    Icon: BookOpen,
+                  },
+                ]
+              ).map((s) => {
+                const I = s.Icon;
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      exitEmpty();
+                      startScript(s.id);
+                    }}
+                    className="starter-row w-full"
+                  >
+                    <div className="starter-row-icon">
+                      <I className="w-[14px] h-[14px]" strokeWidth={2.2} />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div
+                        className="text-foreground font-bold"
+                        style={{ fontSize: 13 }}
+                      >
+                        {s.label}
+                      </div>
+                      <div
+                        className="text-muted-foreground"
+                        style={{
+                          fontSize: 10,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          marginTop: 1,
+                        }}
+                      >
+                        {s.sub}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      className="shrink-0"
+                      style={{ width: 14, height: 14, color: "var(--muted-2)" }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+            <div
+              className="eyebrow"
+              style={{ marginBottom: 8, marginLeft: 4 }}
+            >
+              Ask anything
+            </div>
+            <div className="flex flex-col gap-1.5">
+              {(
+                [
+                  {
+                    q: "Why did Tuesday's migraine last 8 hours?",
+                    Icon: Sparkles,
+                  },
+                  {
+                    q: "Is my sleep the main trigger right now?",
+                    Icon: Moon,
+                  },
+                  {
+                    q: "Summarize April for my neurologist visit",
+                    Icon: BookOpen,
+                  },
+                ]
+              ).map((s, i) => {
+                const I = s.Icon;
+                return (
+                  <button
+                    key={i}
+                    onClick={() => {
+                      exitEmpty();
+                      sendUserMessage(s.q);
+                    }}
+                    className="starter-row w-full"
+                  >
+                    <div className="starter-row-icon">
+                      <I className="w-[14px] h-[14px]" strokeWidth={2.2} />
+                    </div>
+                    <div className="flex-1 text-left min-w-0">
+                      <div
+                        className="text-foreground font-semibold"
+                        style={{ fontSize: 13, lineHeight: 1.25 }}
+                      >
+                        {s.q}
+                      </div>
+                    </div>
+                    <ChevronRight
+                      className="shrink-0"
+                      style={{ width: 14, height: 14, color: "var(--muted-2)" }}
+                    />
+                  </button>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
         <AnimatePresence initial={false}>
           {messages.map((msg) => (
             <motion.div
@@ -598,8 +847,11 @@ const NeuraChat = ({
         </AnimatePresence>
       </div>
 
-      {/* Quick chips + input */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-20">
+      {/* Quick chips + input — sits above BottomNav (92px) */}
+      <div
+        className="fixed left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border z-20"
+        style={{ bottom: onNavigate ? 92 : 0 }}
+      >
         <div className="px-4 pt-3 pb-2">
           <div className="flex gap-2 overflow-x-auto scrollbar-hide">
             {quickChips.map((chip) => (
@@ -633,22 +885,31 @@ const NeuraChat = ({
                 setInputMode("speak");
                 setMicActive(true);
               }}
-              className="w-9 h-9 rounded-full bg-muted flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+              className="flex items-center justify-center shrink-0 active:scale-95 transition-transform border-0 cursor-pointer"
               aria-label="Voice input"
               title="Hold or tap to dictate"
+              style={{
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "var(--nc-accent-soft)",
+                color: "var(--nc-accent)",
+              }}
             >
-              <Mic className="w-4 h-4 text-foreground" strokeWidth={2} />
+              <Mic className="w-[14px] h-[14px]" strokeWidth={2.2} />
             </button>
             <button
               onClick={() => input.trim() && sendUserMessage(input.trim())}
-              className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 text-white active:scale-95 transition-transform"
+              className="flex items-center justify-center shrink-0 text-white active:scale-95 transition-transform border-0 cursor-pointer"
               style={{
-                background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)",
-                boxShadow: "0 4px 10px rgba(59,130,246,0.32)",
+                width: 34,
+                height: 34,
+                borderRadius: "50%",
+                background: "var(--ink)",
               }}
               aria-label="Send"
             >
-              <Send className="w-4 h-4" strokeWidth={2.2} />
+              <Send className="w-[13px] h-[13px]" strokeWidth={2.4} />
             </button>
           </div>
         </div>
@@ -658,6 +919,16 @@ const NeuraChat = ({
       </div>
 
       <NeuraContentModal content={modalContent} onClose={() => setModalContent(null)} />
+
+      {onNavigate && (
+        <BottomNav
+          activeTab="neura"
+          onTabChange={onNavigate}
+          onOpenDiary={onOpenDiary}
+          onOpenNeura={undefined}
+          onLog={onLog}
+        />
+      )}
     </div>
   );
 };

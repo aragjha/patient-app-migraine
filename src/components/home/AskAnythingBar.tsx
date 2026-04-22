@@ -30,7 +30,10 @@ const AskAnythingBar = ({ onAsk }: AskAnythingBarProps) => {
 
   return (
     <div className="flex items-center gap-2.5 bg-card border border-border rounded-full pl-4 pr-1.5 py-1.5 shadow-sm">
-      <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shrink-0 bg-gradient-to-br from-[#1B2A4E] via-[#7C3AED] to-[#3B82F6]">
+      <div
+        className="flex items-center justify-center text-white shrink-0 bg-gradient-to-br from-[#1B2A4E] via-[#7C3AED] to-[#3B82F6]"
+        style={{ width: 22, height: 22, borderRadius: 7 }}
+      >
         <Sparkles className="w-3 h-3" strokeWidth={2.2} />
       </div>
       <div className="flex-1 relative min-w-0">
@@ -51,7 +54,8 @@ const AskAnythingBar = ({ onAsk }: AskAnythingBarProps) => {
       </div>
       <button
         onClick={submit}
-        className="w-9 h-9 rounded-full text-white flex items-center justify-center shrink-0 bg-gradient-to-br from-accent to-[#7C3AED] active:scale-95 transition-transform"
+        className="rounded-full text-white flex items-center justify-center shrink-0 bg-gradient-to-br from-accent to-[#7C3AED] active:scale-95 transition-transform"
+        style={{ width: 38, height: 38 }}
         aria-label="Send question to Neura"
       >
         <ArrowUp className="w-4 h-4" strokeWidth={2.4} />

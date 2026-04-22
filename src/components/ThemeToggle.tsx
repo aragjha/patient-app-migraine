@@ -8,31 +8,40 @@ const ThemeToggle = () => {
   useEffect(() => {
     // Check initial theme from localStorage or system preference
     const stored = localStorage.getItem("theme");
+    const applyTheme = (dark: boolean) => {
+      if (dark) {
+        document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    };
     if (stored === "dark") {
       setIsDark(true);
-      document.documentElement.classList.add("dark");
+      applyTheme(true);
     } else if (stored === "light") {
       setIsDark(false);
-      document.documentElement.classList.remove("dark");
+      applyTheme(false);
     } else {
       // Use system preference
       const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
       setIsDark(prefersDark);
-      if (prefersDark) {
-        document.documentElement.classList.add("dark");
-      }
+      applyTheme(prefersDark);
     }
   }, []);
 
   const toggleTheme = () => {
     const newIsDark = !isDark;
     setIsDark(newIsDark);
-    
+
     if (newIsDark) {
       document.documentElement.classList.add("dark");
+      document.documentElement.setAttribute("data-theme", "dark");
       localStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
+      document.documentElement.setAttribute("data-theme", "light");
       localStorage.setItem("theme", "light");
     }
   };

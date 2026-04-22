@@ -156,10 +156,10 @@ const MedicationOnboarding = ({ onComplete, onBack }: MedicationOnboardingProps)
         {screen === "intro" && (
           <div className="absolute inset-0 flex flex-col bg-background text-foreground">
             <FlowHeader step={0} total={2} onBack={onBack} />
-            <div className="flex-1 px-7 py-3 flex flex-col justify-center">
+            <div className="flex-1 px-7 py-[10px] flex flex-col justify-center">
               <div
-                className="text-[40px] font-medium tracking-tight leading-[1.05] text-foreground mb-3.5"
-                style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                className="text-[40px] font-medium leading-[1.05] text-foreground mb-3.5"
+                style={{ fontFamily: "'Fraunces', Georgia, serif", letterSpacing: "-0.03em" }}
               >
                 Your medication cabinet.
               </div>

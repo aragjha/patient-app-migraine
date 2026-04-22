@@ -28,8 +28,9 @@ const ConsentRow = ({ locked, checked, onToggle, title, desc }: ConsentRowProps)
     }}
   >
     <div
-      className="shrink-0 w-6 h-6 rounded-lg flex items-center justify-center mt-0.5 border-[1.5px]"
+      className="shrink-0 w-6 h-6 flex items-center justify-center mt-0.5 border-[1.5px]"
       style={{
+        borderRadius: 7,
         borderColor: checked ? "hsl(var(--accent))" : "hsl(var(--border))",
         background: checked ? "hsl(var(--accent))" : "transparent",
       }}
@@ -94,8 +95,8 @@ const ConsentScreen = ({ onConsent, onSignOut, onBack }: ConsentScreenProps) => 
       >
         <div className="px-6 pt-5 flex-1 overflow-y-auto">
           <div
-            className="text-[34px] font-medium tracking-tight leading-[1.1] text-foreground mb-2"
-            style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+            className="text-[34px] font-medium leading-[1.1] text-foreground mb-2"
+            style={{ fontFamily: "'Fraunces', Georgia, serif", letterSpacing: "-0.02em" }}
           >
             Your data, your call
           </div>

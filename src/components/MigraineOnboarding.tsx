@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, Check, Sparkles, TrendingUp, Shield } from "lucide-react";
+import { ChevronLeft, Check, Sparkles, BarChart3, Shield } from "lucide-react";
 
 /**
  * Migraine onboarding — 8-step flow ported from the Claude Design prototype.
@@ -278,8 +278,8 @@ const MigraineOnboarding = ({
             <FlowHeader step={0} total={total} onBack={back} />
             <div className="flex-1 px-7 py-6 flex flex-col justify-center">
               <div
-                className="text-[42px] font-medium tracking-tight leading-[1.02] text-foreground mb-4"
-                style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                className="text-[42px] font-medium leading-[1.02] text-foreground mb-4"
+                style={{ fontFamily: "'Fraunces', Georgia, serif", letterSpacing: "-0.03em" }}
               >
                 Let's get to know
                 <br />
@@ -291,7 +291,7 @@ const MigraineOnboarding = ({
               <div className="flex flex-col gap-3.5">
                 {[
                   { icon: Sparkles, t: "Personalized AI companion", s: "Neura adapts to your specific patterns." },
-                  { icon: TrendingUp, t: "Pattern detection", s: "Triggers and trends surface as you log." },
+                  { icon: BarChart3, t: "Pattern detection", s: "Triggers and trends surface as you log." },
                   { icon: Shield, t: "Private by design", s: "Your data is encrypted, never sold." },
                 ].map((b) => {
                   const I = b.icon;
@@ -399,13 +399,13 @@ const MigraineOnboarding = ({
             sub="When a migraine hits, how intense does it usually feel?"
           >
             <div
-              className="p-8 rounded-3xl bg-card border-[1.5px] text-center"
+              className="py-8 px-5 rounded-3xl bg-card border-[1.5px] text-center"
               style={{ borderColor: "hsl(var(--border))" }}
             >
               <div className="text-[72px] leading-none mb-2">{PAIN_FACES[data.pain]}</div>
               <div
-                className="text-[56px] font-medium tracking-tight leading-none"
-                style={{ fontFamily: "'Fraunces', Georgia, serif", color: painColor }}
+                className="text-[56px] font-medium leading-none"
+                style={{ fontFamily: "'Fraunces', Georgia, serif", color: painColor, letterSpacing: "-0.03em" }}
               >
                 {data.pain}
                 <span className="text-[22px] text-muted-foreground font-normal">/10</span>
@@ -444,7 +444,7 @@ const MigraineOnboarding = ({
                   <button
                     key={o.v}
                     onClick={() => toggleInArray("triggers", o.v)}
-                    className="p-3.5 rounded-2xl border-2 flex flex-col items-start gap-1.5 transition-all"
+                    className="py-3.5 px-3 rounded-2xl border-2 flex flex-col items-start gap-1.5 transition-all"
                     style={{
                       background: sel ? "var(--accent-soft, hsl(var(--accent) / 0.1))" : "hsl(var(--card))",
                       borderColor: sel ? "hsl(var(--accent))" : "hsl(var(--border))",

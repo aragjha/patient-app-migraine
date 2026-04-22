@@ -45,7 +45,7 @@ const TextField = ({
         placeholder={placeholder}
         autoComplete={autoComplete}
         disabled={disabled}
-        className="w-full h-[54px] rounded-2xl border-[1.5px] border-border bg-card text-foreground text-[15px] px-4 outline-none box-border focus:border-accent transition-colors"
+        className="w-full h-[54px] rounded-[14px] border-[1.5px] border-border bg-card text-foreground text-[15px] px-4 outline-none box-border focus:border-accent transition-colors"
         style={right ? { paddingRight: 48 } : undefined}
       />
       {right && (
@@ -112,14 +112,20 @@ const PrimaryBtn = ({
 
 const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: AuthPageProps) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  // Prefill login with demo credentials to match the prototype's first-render
+  // state (alex@example.com / ••••••••). Signup starts blank.
+  const [email, setEmail] = useState(initialMode === "login" ? "alex@example.com" : "");
+  const [password, setPassword] = useState(initialMode === "login" ? "demo1234" : "");
   const [firstName, setFirstName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setMode(initialMode);
+    if (initialMode === "login") {
+      setEmail((prev) => prev || "alex@example.com");
+      setPassword((prev) => prev || "demo1234");
+    }
   }, [initialMode]);
 
   const handleGoogleSignIn = async () => {
@@ -234,8 +240,8 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: Aut
             <>
               <div className="px-6 pt-5 flex-1 overflow-y-auto">
                 <div
-                  className="text-[36px] font-medium leading-[1.05] tracking-tight text-foreground mb-2"
-                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                  className="text-[36px] font-medium leading-[1.05] text-foreground mb-2"
+                  style={{ fontFamily: "'Fraunces', Georgia, serif", letterSpacing: "-0.02em" }}
                 >
                   Reset password
                 </div>
@@ -264,8 +270,8 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: Aut
             <>
               <div className="px-6 pt-5 flex-1 overflow-y-auto">
                 <div
-                  className="text-[36px] font-medium leading-[1.05] tracking-tight text-foreground mb-2"
-                  style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+                  className="text-[36px] font-medium leading-[1.05] text-foreground mb-2"
+                  style={{ fontFamily: "'Fraunces', Georgia, serif", letterSpacing: "-0.02em" }}
                 >
                   {isLogin ? "Welcome back" : "Create your account"}
                 </div>
