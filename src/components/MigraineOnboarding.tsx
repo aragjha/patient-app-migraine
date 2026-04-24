@@ -527,7 +527,12 @@ const MigraineOnboarding = ({
                 Add my medications
               </PrimaryBtn>
               <button
-                onClick={() => onComplete(data)}
+                onClick={() => {
+                  if (["yes", "irregular", "peri"].includes(data.menstrual ?? "")) {
+                    onMenstrualEnabled?.();
+                  }
+                  onComplete(data);
+                }}
                 className="h-13 bg-transparent border-0 cursor-pointer text-muted-foreground text-[15px] font-semibold py-3.5"
               >
                 Skip for now
