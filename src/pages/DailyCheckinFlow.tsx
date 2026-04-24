@@ -4,6 +4,7 @@ import OnboardingQuestion from "@/components/OnboardingQuestion";
 import GratificationScreen from "@/components/GratificationScreen";
 import { Diagnosis } from "@/components/OnboardingFlow";
 import { CheckInLog, HeadacheLog } from "@/types/logs";
+import { hasAttackToday } from "@/utils/attackUtils";
 
 const pdCheckInQuestions = [
   {
@@ -176,13 +177,16 @@ interface DailyCheckinFlowProps {
   onUpdateAttackNote?: (attackId: string, note: string) => void;
 }
 
-const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowProps) => {
+const DailyCheckinFlow = ({ onComplete, onBack, diagnosis, attackLogs, onUpdateAttackNote }: DailyCheckinFlowProps) => {
   const checkInQuestions = diagnosis === "migraine" ? migraineCheckInQuestions : pdCheckInQuestions;
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [showGratification, setShowGratification] = useState(false);
   const [answers, setAnswers] = useState<Record<string, string[] | number>>({});
   const [completedLog, setCompletedLog] = useState<CheckInLog | null>(null);
   const autoAdvanceTimer = useRef<NodeJS.Timeout | null>(null);
+  const [showAttackInterstitial, setShowAttackInterstitial] = useState(false);
+  const [interstitialNote, setInterstitialNote] = useState("");
+  const [showNoteInput, setShowNoteInput] = useState(false);
 
   const currentQuestion = checkInQuestions[currentQuestionIndex];
 
@@ -205,8 +209,18 @@ const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowPro
         setAnswers({ ...answers, [currentQuestion.id]: [...current, id] });
       }
     } else {
-      setAnswers({ ...answers, [currentQuestion.id]: [id] });
+      const newAnswers = { ...answers, [currentQuestion.id]: [id] };
+      setAnswers(newAnswers);
       if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+      // If headache_today and attack already logged today → show interstitial instead
+      if (
+        currentQuestion.id === "headache_today" &&
+        id !== "no" &&
+        hasAttackToday(attackLogs ?? [])
+      ) {
+        autoAdvanceTimer.current = setTimeout(() => setShowAttackInterstitial(true), 300);
+        return;
+      }
       autoAdvanceTimer.current = setTimeout(() => {
         handleContinue();
       }, 300);
@@ -216,6 +230,19 @@ const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowPro
   const handleSliderChange = (value: number) => {
     if (!currentQuestion) return;
     setAnswers({ ...answers, [currentQuestion.id]: value });
+  };
+
+  const getNextIndex = (currentIdx: number, currentAnswers: typeof answers): number => {
+    const q = checkInQuestions[currentIdx];
+    if (!q) return currentIdx + 1;
+    if (q.id === "medication_taken") {
+      const medAnswer = (currentAnswers[q.id] as string[])?.[0];
+      if (medAnswer === "no") {
+        const disabilityIdx = checkInQuestions.findIndex((q2) => q2.id === "disability");
+        return disabilityIdx >= 0 ? disabilityIdx : currentIdx + 1;
+      }
+    }
+    return currentIdx + 1;
   };
 
   const handleContinue = () => {
@@ -236,7 +263,7 @@ const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowPro
       setCompletedLog(log);
       setShowGratification(true);
     } else {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
+      setCurrentQuestionIndex(getNextIndex(currentQuestionIndex, answers));
     }
   };
 
@@ -246,6 +273,70 @@ const DailyCheckinFlow = ({ onComplete, onBack, diagnosis }: DailyCheckinFlowPro
     const answer = answers[currentQuestion.id];
     return Array.isArray(answer) && answer.length > 0;
   };
+
+  if (showAttackInterstitial) {
+    const disabilityIdx = checkInQuestions.findIndex((q) => q.id === "disability");
+    const jumpToDisability = () => {
+      setShowAttackInterstitial(false);
+      setCurrentQuestionIndex(disabilityIdx >= 0 ? disabilityIdx : checkInQuestions.length - 1);
+    };
+    return (
+      <div className="min-h-[100dvh] flex flex-col bg-background text-foreground px-6 pt-20">
+        <div
+          className="text-[28px] font-medium leading-tight text-foreground mb-2"
+          style={{ fontFamily: "'Fraunces', Georgia, serif" }}
+        >
+          Already logged today
+        </div>
+        <p className="text-[15px] text-muted-foreground mb-8">
+          You already logged a migraine today. Anything you want to add?
+        </p>
+        {showNoteInput ? (
+          <div className="flex flex-col gap-3 mb-6">
+            <textarea
+              className="w-full rounded-[14px] border-[1.5px] border-border bg-card text-foreground text-[15px] p-4 outline-none focus:border-accent resize-none"
+              rows={4}
+              placeholder="Any updates, new symptoms, or notes..."
+              value={interstitialNote}
+              onChange={(e) => setInterstitialNote(e.target.value)}
+            />
+            <button
+              onClick={() => {
+                if (interstitialNote.trim()) {
+                  const todayStr = new Date().toDateString();
+                  const todayAttack = [...(attackLogs ?? [])]
+                    .filter((l) => new Date(l.startTime).toDateString() === todayStr)
+                    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())[0];
+                  if (todayAttack) onUpdateAttackNote?.(todayAttack.id, interstitialNote.trim());
+                }
+                jumpToDisability();
+              }}
+              className="w-full h-14 rounded-[28px] border-0 text-white text-base font-bold cursor-pointer"
+              style={{ background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)" }}
+            >
+              Save & Continue
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={jumpToDisability}
+              className="w-full h-14 rounded-[28px] border-0 text-white text-base font-bold cursor-pointer"
+              style={{ background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)" }}
+            >
+              All good — nothing to add
+            </button>
+            <button
+              onClick={() => setShowNoteInput(true)}
+              className="w-full h-14 rounded-[28px] border-[1.5px] border-border bg-card text-foreground text-base font-semibold cursor-pointer"
+            >
+              Add a note
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (showGratification) {
     return (
