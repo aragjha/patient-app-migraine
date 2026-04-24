@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { HeadacheLog, CheckInLog } from "@/types/logs";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingFlow, { OnboardingState, Diagnosis } from "@/components/OnboardingFlow";
 import AuthPage from "@/pages/AuthPage";
@@ -86,11 +87,27 @@ const Index = () => {
 
   // Headache tracking
   const [headacheCount, setHeadacheCount] = usePersistedState("nc-headache-count", 0);
-  const [activeMigraine, setActiveMigraine] = useState<{ startTime: Date } | null>(null);
+  const [attackLogs, setAttackLogs] = usePersistedState<HeadacheLog[]>("nc-attack-logs", []);
+  const [checkInLogs, setCheckInLogs] = usePersistedState<CheckInLog[]>("nc-checkin-logs", []);
+  const [menstrualEnabled, setMenstrualEnabled] = usePersistedState<boolean>("nc-menstrual-enabled", false);
+  const [otpEmail, setOtpEmail] = useState<string>("");
+  const [activeMigraine, setActiveMigraine] = useState<{
+    startTime: Date;
+    painPeak?: number;
+    zones?: string[];
+    medsTaken?: string[];
+    attackLogId?: string;
+  } | null>(null);
 
   // Neura script targeting (set when home tiles/CTAs want Neura to start a specific flow)
   const [neuraInitialScript, setNeuraInitialScript] = useState<ScriptId | null>(null);
   const [neuraInitialQuery, setNeuraInitialQuery] = useState<string | null>(null);
+
+  const updateAttackLog = (id: string, patch: Partial<HeadacheLog>) => {
+    setAttackLogs((prev) =>
+      prev.map((l) => (l.id === id ? { ...l, ...patch } : l))
+    );
+  };
 
   // Load mock data when demo mode is active
   useEffect(() => {
