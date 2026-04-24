@@ -12,8 +12,8 @@ export const consentShortForm = {
       body: "Sell your data, share without permission, or use your health data to train AI models outside your care.",
     },
     {
-      heading: "Sharing is off by default",
-      body: "Anything you want to send to a doctor or caregiver, you explicitly turn on.",
+      heading: "Sharing with your provider",
+      body: "Sharing is off by default. To send your diary or reports to your doctor or caregiver, you explicitly turn on sharing from Settings — any transfer is encrypted and HIPAA-compliant, and you can revoke access at any time.",
     },
   ],
   footer:

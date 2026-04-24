@@ -207,6 +207,9 @@ const Index = () => {
       } else {
         setCurrentScreen("home");
       }
+    } else if (tab === "tools") {
+      // Tools tab is deprecated — redirect to home
+      setCurrentScreen("home");
     } else {
       setCurrentScreen(tab);
     }
@@ -282,12 +285,12 @@ const Index = () => {
   const handleDiaryComplete = () => { setOpenDiaryId(null); setCurrentScreen("diaries"); };
 
   const handleOpenMedications = () => {
-    setCurrentScreen(medications.length === 0 ? "medication-onboarding" : "medication-hub");
+    setCurrentScreen("medication-hub");
   };
 
   const handleMedicationOnboardingComplete = (newMeds: Medication[]) => {
     setMedications(newMeds);
-    setCurrentScreen(newMeds.length > 0 ? "medication-hub" : "tools");
+    setCurrentScreen("medication-hub");
   };
 
   const handleMedicationOnboardingFromFlowComplete = (newMeds: Medication[]) => {
@@ -468,7 +471,7 @@ const Index = () => {
         return (
           <MedicationOnboarding
             onComplete={handleMedicationOnboardingComplete}
-            onBack={() => setCurrentScreen("tools")}
+            onBack={() => setCurrentScreen("medication-hub")}
           />
         );
       case "medication-onboarding-from-flow":
@@ -486,7 +489,7 @@ const Index = () => {
             onEditMedication={(med) => console.log("Edit medication:", med)}
             onToggleReminder={handleToggleMedicationReminder}
             onOpenLog={() => setCurrentScreen("medication-log")}
-            onBack={() => setCurrentScreen("tools")}
+            onBack={() => setCurrentScreen("home")}
           />
         );
       case "medication-log":
@@ -497,6 +500,7 @@ const Index = () => {
             onBack={() => setCurrentScreen("medication-hub")}
           />
         );
+
       case "log-headache":
         return (
           <LogHeadacheFlow
@@ -562,6 +566,26 @@ const Index = () => {
             onLog={() => {
               setPreviousScreen("neurogpt");
               handleOpenNeuraWithScript("headache-log");
+            }}
+            onHeadacheLogged={(data) => {
+              const log: HeadacheLog = {
+                id: crypto.randomUUID(),
+                startTime: data.startTime.toISOString(),
+                zones: data.zones ?? [],
+                painPeak: data.painPeak ?? 5,
+                symptoms: [],
+                triggers: [],
+                medications: [],
+                status: "active",
+              };
+              setAttackLogs((prev) => [...prev, log]);
+              setHeadacheCount((c) => c + 1);
+              setActiveMigraine({
+                startTime: data.startTime,
+                zones: data.zones,
+                painPeak: data.painPeak,
+                attackLogId: log.id,
+              });
             }}
           />
         );

@@ -35,6 +35,7 @@ interface NeuraChatProps {
   onNavigate?: (tab: "home" | "maps" | "tools" | "profile") => void;
   onOpenDiary?: () => void;
   onLog?: () => void;
+  onHeadacheLogged?: (data: { startTime: Date; zones?: string[]; painPeak?: number }) => void;
 }
 
 // Map trigger IDs (used in mock data) to human labels for chat display.
@@ -86,11 +87,13 @@ const NeuraChat = ({
   onNavigate,
   onOpenDiary,
   onLog,
+  onHeadacheLogged,
 }: NeuraChatProps) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const [micActive, setMicActive] = useState(false);
-  const [inputMode, setInputMode] = useState<"tap" | "speak">("tap");
+  // Default to voice mode in free-chat (empty state); tap mode when a script drives the flow
+  const [micActive, setMicActive] = useState(!initialScript && !initialQuery);
+  const [inputMode, setInputMode] = useState<"tap" | "speak">(!initialScript && !initialQuery ? "speak" : "tap");
   const [isTyping, setIsTyping] = useState(false);
   const [modalContent, setModalContent] = useState<NeuraContent | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -305,6 +308,10 @@ const NeuraChat = ({
       withTyping(() => {
         appendNeura([{ type: "text", text: pickPhrase(script.closePhraseKey) }]);
       }, 500);
+      // Fire headache-logged callback so home screen shows the active timer
+      if (script.id === "headache-log" && onHeadacheLogged) {
+        onHeadacheLogged({ startTime: new Date() });
+      }
       setActiveScript(null);
       setScriptStepIdx(0);
       return;
@@ -658,6 +665,20 @@ const NeuraChat = ({
             animate={{ opacity: 1, y: 0 }}
             className="pt-1"
           >
+            {/* Contextual greeting */}
+            <div
+              style={{
+                margin: "12px 4px 6px",
+                fontSize: 11,
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--nc-muted)",
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              }}
+            >
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}
+            </div>
             <h2
               className="text-foreground"
               style={{
@@ -666,7 +687,7 @@ const NeuraChat = ({
                 fontSize: 32,
                 letterSpacing: "-0.035em",
                 lineHeight: 1,
-                margin: "12px 4px 14px",
+                margin: "0 4px 14px",
               }}
             >
               A clinician
@@ -681,13 +702,36 @@ const NeuraChat = ({
               className="text-muted-foreground"
               style={{
                 fontSize: 13,
-                margin: "0 4px 18px",
+                margin: "0 4px 16px",
                 lineHeight: 1.5,
               }}
             >
-              Speaks from your diary. Can log a headache, run your check-in,
-              or surface patterns.
+              Speaks from your diary. Tap to speak or pick a flow below.
             </p>
+
+            {/* Rotating sample prompts */}
+            <div style={{ margin: "0 0 20px" }}>
+              {[
+                "Why do I always get migraines on Monday?",
+                "What helped with my last attack?",
+                "Is my Topiramate actually working?",
+              ].map((prompt, i) => (
+                <button
+                  key={i}
+                  onClick={() => {
+                    exitEmpty();
+                    sendUserMessage(prompt);
+                  }}
+                  className="w-full text-left mb-2 px-4 py-3 rounded-2xl border border-border bg-card active:bg-muted transition-colors"
+                  style={{ fontFamily: "inherit" }}
+                >
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="w-3.5 h-3.5 text-accent shrink-0" strokeWidth={2.2} />
+                    <span style={{ fontSize: 13, fontWeight: 500, color: "var(--ink)", lineHeight: 1.4 }}>{prompt}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
             <div
               className="eyebrow"
               style={{ marginBottom: 8, marginLeft: 4 }}

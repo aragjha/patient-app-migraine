@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import Header from "@/components/Header";
+import { ChevronLeft } from "lucide-react";
 import CTAButton from "@/components/CTAButton";
 import SelectionChip from "@/components/SelectionChip";
 import QuestionSlider from "@/components/QuestionSlider";
@@ -47,21 +47,40 @@ const OnboardingQuestion = ({
   const showContinueButton = questionType === "multi";
 
   return (
-    <div className="min-h-screen flex flex-col bg-background safe-layout">
-      {/* Header with back button */}
-      <Header 
-        showProgress 
-        progress={progress} 
-        totalSteps={totalSteps}
-        showBackButton={showBackButton}
-        onBack={onBack}
-      />
+    <div className="min-h-screen flex flex-col bg-background">
+      {/* Modern flow header — progress bar + optional back */}
+      <div className="px-5 pt-14 pb-2 flex items-center gap-3">
+        {showBackButton && onBack ? (
+          <button
+            onClick={onBack}
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center active:bg-muted/70 shrink-0"
+            aria-label="Back"
+          >
+            <ChevronLeft className="w-5 h-5 text-foreground" strokeWidth={2.2} />
+          </button>
+        ) : (
+          <div className="w-10 h-10 shrink-0" />
+        )}
+        <div className="flex-1 h-1.5 rounded-full bg-foreground/10 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-[width] duration-300"
+            style={{
+              width: `${Math.max(0, (progress / totalSteps) * 100)}%`,
+              background: "linear-gradient(90deg, #3B82F6 0%, #7C3AED 100%)",
+            }}
+          />
+        </div>
+        <div className="w-10 text-xs text-muted-foreground text-right tabular-nums">
+          {progress}/{totalSteps}
+        </div>
+      </div>
 
       {/* Question Content */}
-      <div className="flex-1 pt-8">
+      <div className="flex-1 px-6 pt-4 pb-4">
         {/* Title */}
         <motion.h1
-          className="text-h1-lg text-foreground mb-2"
+          className="text-foreground mb-2 leading-tight"
+          style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em" }}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
@@ -71,7 +90,8 @@ const OnboardingQuestion = ({
         {/* Helper */}
         {helper && (
           <motion.p
-            className="text-body text-muted-foreground mb-8"
+            className="text-muted-foreground mb-6"
+            style={{ fontSize: 14.5, lineHeight: 1.5 }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}

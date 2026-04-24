@@ -152,10 +152,10 @@ const HomeHub = ({
   // Migraine editorial home
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background">
-      <div className="flex-1 px-5 pt-3 pb-24 overflow-y-auto">
+      <div className="flex-1 px-5 pt-4 pb-24 overflow-y-auto">
         {/* Top bar: brand + streak pill */}
         <motion.div
-          className="flex items-center justify-between mb-4"
+          className="flex items-center justify-between mb-5"
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35 }}
@@ -189,7 +189,7 @@ const HomeHub = ({
             {getGreeting()} · {formatDate(new Date())}
           </div>
           <h1
-            className="display text-[30px] text-foreground m-0"
+            className="display text-[40px] text-foreground m-0 leading-[1.05] tracking-tight"
           >
             How's your <em className="italic text-accent">head</em>
             <br />
@@ -230,8 +230,8 @@ const HomeHub = ({
           />
           <div className="relative">
             <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/65 mb-2">Right now</div>
-            <div className="text-[22px] font-bold leading-[1.1] tracking-tight mb-1">Log a headache</div>
-            <div className="text-[13px] text-white/75 mb-3">Neura will walk you through it · ~45 sec</div>
+            <div className="text-[24px] font-bold leading-[1.1] tracking-tight mb-1">Log a headache</div>
+            <div className="text-[13px] text-white/75 mb-4">Neura will walk you through it · ~45 sec</div>
             <div className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-semibold bg-white/15 backdrop-blur-sm">
               <Sparkles className="w-3.5 h-3.5" strokeWidth={2} /> Start with Neura
             </div>

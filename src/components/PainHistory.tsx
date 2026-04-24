@@ -261,15 +261,18 @@ export const ActiveMigraineTimer = ({ onStopTimer, startTime, onOpenReliefGuide 
         ))}
       </div>
 
-      {/* Stop button */}
+      {/* End migraine button */}
       <motion.button
         onClick={onStopTimer}
         whileTap={{ scale: 0.96 }}
         className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-500 text-white font-semibold text-sm shadow-lg shadow-red-500/25 active:shadow-md transition-shadow mb-3"
       >
         <Square className="w-4 h-4 fill-white" />
-        Stop Timer
+        Mark migraine ended
       </motion.button>
+      <p className="text-[10px] text-muted-foreground text-center mb-3 -mt-1">
+        We'll ask a couple of quick post-migraine questions — we already have the start time, location, and meds from your log.
+      </p>
 
       {/* Rotating relief tip + guide link */}
       <div className="flex items-start gap-2 px-1">

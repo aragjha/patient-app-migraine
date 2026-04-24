@@ -38,7 +38,7 @@ const BottomNav = ({
       id: "diary",
       label: "Diary",
       icon: BookOpen,
-      onClick: () => (onOpenDiary ?? (() => onTabChange("tools")))(),
+      onClick: () => (onOpenDiary ?? (() => onTabChange("home")))(),
     },
     {
       id: "log",
@@ -51,7 +51,7 @@ const BottomNav = ({
       id: "neura",
       label: "Neura",
       icon: Sparkles,
-      onClick: () => (onOpenNeura ?? (() => onTabChange("maps")))(),
+      onClick: () => (onOpenNeura ?? (() => onTabChange("home")))(),
     },
     {
       id: "profile",

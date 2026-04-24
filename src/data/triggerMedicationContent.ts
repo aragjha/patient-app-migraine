@@ -122,7 +122,7 @@ export const menstrualQuestions = [
   },
   {
     id: "warning_before_period",
-    question: "Do you notice warning signs 1-2 days before your period?",
+    question: "Any warning signs 1-2 days before your period? Examples of warning signs may include: fatigue, mood changes, neck stiffness, food cravings, bloating.",
     type: "multi" as const,
     options: [
       { id: "fatigue", label: "Fatigue", icon: "😴" },

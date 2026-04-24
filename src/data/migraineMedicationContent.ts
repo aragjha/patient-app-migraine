@@ -5,8 +5,8 @@ export interface Medication {
   name: string;
   dosage: number; // in mg
   quantity: number; // number of pills/tablets
-  type: "tablet" | "capsule" | "patch" | "injection" | "liquid" | "nasal_spray";
-  frequency: "once" | "twice" | "three" | "four" | "as_needed";
+  type: "tablet" | "capsule" | "patch" | "injection" | "infusion" | "liquid" | "nasal_spray" | "other";
+  frequency: "once" | "twice" | "three" | "four" | "as_needed" | "weekly" | "monthly" | "quarterly";
   times: ("morning" | "afternoon" | "evening" | "night")[];
   reminderEnabled: boolean;
   color: string;
@@ -113,23 +113,33 @@ export const popularMedications = [
   { name: "Cefaly (eTNS device)", category: "Device - Neuromodulation" },
   { name: "SpringTMS (sTMS)", category: "Device - Neuromodulation" },
   { name: "gammaCore (nVNS)", category: "Device - Neuromodulation" },
+
+  // === OTHER ===
+  { name: "Medical cannabis / CBD", category: "Other" },
+  { name: "Ketamine (intranasal / IV)", category: "Other" },
+  { name: "Other medication", category: "Other" },
 ];
 
 export const medicationTypes = [
-  { id: "tablet", label: "Tablet", icon: "💊" },
-  { id: "capsule", label: "Capsule", icon: "💠" },
-  { id: "patch", label: "Patch", icon: "🩹" },
-  { id: "injection", label: "Injection", icon: "💉" },
-  { id: "liquid", label: "Liquid", icon: "🧴" },
+  { id: "tablet", label: "Tablet", icon: "💊", helper: "Solid, compressed — swallowed whole" },
+  { id: "capsule", label: "Capsule", icon: "💊", helper: "Gel/shell casing — swallowed whole" },
+  { id: "patch", label: "Patch", icon: "🩹", helper: "Applied to skin" },
+  { id: "injection", label: "Injection", icon: "💉", helper: "Self or clinic-administered shot" },
+  { id: "infusion", label: "Infusion (IV)", icon: "🩸", helper: "Given intravenously in a clinic" },
+  { id: "liquid", label: "Liquid / Oral syrup", icon: "💧" },
   { id: "nasal_spray", label: "Nasal Spray", icon: "👃" },
+  { id: "other", label: "Other", icon: "✚", helper: "Cannabis, ketamine, or something else" },
 ];
 
 export const frequencyOptions = [
   { id: "once", label: "Once daily", shortLabel: "1x", icon: "1️⃣" },
   { id: "twice", label: "Twice daily", shortLabel: "2x", icon: "2️⃣" },
-  { id: "three", label: "Three times", shortLabel: "3x", icon: "3️⃣" },
-  { id: "four", label: "Four times", shortLabel: "4x", icon: "4️⃣" },
+  { id: "three", label: "Three times daily", shortLabel: "3x", icon: "3️⃣" },
+  { id: "four", label: "Four times daily", shortLabel: "4x", icon: "4️⃣" },
   { id: "as_needed", label: "As needed", shortLabel: "PRN", icon: "🔄" },
+  { id: "weekly", label: "Weekly", shortLabel: "1/wk", icon: "📅" },
+  { id: "monthly", label: "Monthly", shortLabel: "1/mo", icon: "🗓️" },
+  { id: "quarterly", label: "Every 3 months", shortLabel: "1/qtr", icon: "📆" },
 ];
 
 export const timeOptions = [
@@ -140,6 +150,7 @@ export const timeOptions = [
 ];
 
 export const dosagePresets = [2.5, 5, 10, 20, 25, 40, 50, 100, 200, 400, 500];
+export const dosageOtherLabel = "Other (type your dose)";
 export const quantityPresets = [1, 2, 3, 4];
 
 export const medicationColors = [

@@ -35,7 +35,7 @@ const PatternInsightCard = ({
         <div className="flex justify-between items-start mb-3">
           <div>
             <div
-              className="text-[28px] font-extrabold text-foreground leading-none"
+              className="text-[36px] font-extrabold text-foreground leading-none"
               style={{
                 fontFamily: "'Fraunces', Georgia, serif",
                 letterSpacing: "-0.02em",

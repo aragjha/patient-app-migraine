@@ -14,7 +14,7 @@ interface MedicationOnboardingProps {
   onBack: () => void;
 }
 
-type MedKind = "acute" | "preventive" | "supplement";
+type MedKind = "acute" | "preventive" | "rescue" | "supplement" | "other";
 
 interface Preset {
   id: string;
@@ -30,13 +30,19 @@ const PRESETS: Preset[] = [
   { id: "ibuprofen", name: "Ibuprofen", dosage: 400, kind: "acute", color: "#E8A838" },
   { id: "propranolol", name: "Propranolol", dosage: 80, kind: "preventive", color: "#3B82F6" },
   { id: "topiramate", name: "Topiramate", dosage: 50, kind: "preventive", color: "#16A34A" },
+  { id: "ondansetron", name: "Ondansetron (Zofran)", dosage: 4, kind: "rescue", color: "#F59E0B" },
+  { id: "metoclopramide", name: "Metoclopramide", dosage: 10, kind: "rescue", color: "#EF4444" },
   { id: "magnesium", name: "Magnesium", dosage: 400, kind: "supplement", color: "#06B6D4" },
+  { id: "cannabis", name: "Medical cannabis / CBD", dosage: 10, kind: "other", color: "#65A30D" },
+  { id: "ketamine", name: "Ketamine", dosage: 10, kind: "other", color: "#9333EA" },
 ];
 
 const CATEGORIES: { k: MedKind; t: string; s: string; c: string; bg: string }[] = [
-  { k: "acute", t: "Acute relief", s: "Triptans, NSAIDs, gepants", c: "#FF6B5C", bg: "#FFE8E4" },
-  { k: "preventive", t: "Preventive daily", s: "Beta-blockers, anti-seizure", c: "#3B82F6", bg: "#EFF6FF" },
+  { k: "acute", t: "Acute", s: "Taken when an attack starts — triptans, NSAIDs, gepants", c: "#FF6B5C", bg: "#FFE8E4" },
+  { k: "preventive", t: "Preventive", s: "Taken daily / weekly to reduce attacks", c: "#3B82F6", bg: "#EFF6FF" },
+  { k: "rescue", t: "Rescue", s: "When nothing else worked — antiemetics, steroids", c: "#F59E0B", bg: "#FEF3C7" },
   { k: "supplement", t: "Supplements", s: "Magnesium, B2, CoQ10", c: "#16A34A", bg: "#DCFCE7" },
+  { k: "other", t: "Other", s: "Cannabis, ketamine, anything else", c: "#9333EA", bg: "#F3E8FF" },
 ];
 
 // ─── Shared UI ───

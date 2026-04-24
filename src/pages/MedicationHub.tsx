@@ -232,8 +232,30 @@ const MedicationHub = ({
                 </div>
               </div>
               {s === "taken" ? (
-                <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
-                  <Check className="w-4 h-4" strokeWidth={3} />
+                <div className="flex items-center gap-1.5">
+                  <div className="w-9 h-9 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 flex items-center justify-center">
+                    <Check className="w-4 h-4" strokeWidth={3} />
+                  </div>
+                  <button
+                    onClick={() => setItemStatus(item, "pending")}
+                    className="px-2.5 py-1.5 rounded-lg bg-muted border-0 cursor-pointer text-[10px] font-semibold text-muted-foreground"
+                    aria-label="Undo mark as taken"
+                  >
+                    Undo
+                  </button>
+                </div>
+              ) : s === "skipped" ? (
+                <div className="flex items-center gap-1.5">
+                  <div className="px-2.5 py-1.5 rounded-lg bg-muted text-[10px] font-semibold text-muted-foreground">
+                    Skipped
+                  </div>
+                  <button
+                    onClick={() => setItemStatus(item, "pending")}
+                    className="px-2.5 py-1.5 rounded-lg bg-muted border-0 cursor-pointer text-[10px] font-semibold text-muted-foreground"
+                    aria-label="Undo skip"
+                  >
+                    Undo
+                  </button>
                 </div>
               ) : (
                 <div className="flex gap-1.5">
