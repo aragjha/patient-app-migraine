@@ -6,6 +6,7 @@ import { HeadacheLog, CheckInLog } from "@/types/logs";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingFlow, { OnboardingState, Diagnosis } from "@/components/OnboardingFlow";
 import AuthPage from "@/pages/AuthPage";
+import OtpVerifyPage from "@/pages/OtpVerifyPage";
 import HomeHub from "@/pages/HomeHub";
 import OffModeHome from "@/pages/OffModeHome";
 import DiariesHub from "@/pages/DiariesHub";
@@ -65,7 +66,8 @@ type AppScreen =
   | "pain-relief"
   | "trigger-analysis"
   | "rewards"
-  | "relief-session";
+  | "relief-session"
+  | "verify-otp";
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("splash");
@@ -172,6 +174,10 @@ const Index = () => {
   const handleAuthSuccess = () => {
     setIsGuestUser(false);
     setCurrentScreen(resolvePostAuthScreen());
+  };
+  const handleNeedsOtpVerify = (email: string) => {
+    setOtpEmail(email);
+    setCurrentScreen("verify-otp");
   };
   const handleAuthBack = () => setCurrentScreen("splash");
   const handleSkipToHome = () => {
@@ -311,7 +317,15 @@ const Index = () => {
       case "splash":
         return <SplashScreen onContinue={handleSplashGetStarted} onSignIn={handleSplashSignIn} />;
       case "auth":
-        return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={handleAuthBack} onSkip={handleSkipToHome} initialMode={authMode} />;
+        return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={handleAuthBack} onSkip={handleSkipToHome} initialMode={authMode} onNeedsOtpVerify={handleNeedsOtpVerify} />;
+      case "verify-otp":
+        return (
+          <OtpVerifyPage
+            email={otpEmail}
+            onVerified={handleAuthSuccess}
+            onBack={() => setCurrentScreen("auth")}
+          />
+        );
       case "consent":
         return (
           <ConsentScreen

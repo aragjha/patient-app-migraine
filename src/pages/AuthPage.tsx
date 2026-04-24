@@ -10,6 +10,7 @@ interface AuthPageProps {
   onBack: () => void;
   onSkip?: () => void;
   initialMode?: AuthMode;
+  onNeedsOtpVerify?: (email: string) => void;
 }
 
 type AuthMode = "login" | "signup" | "forgot";
@@ -110,7 +111,7 @@ const PrimaryBtn = ({
   </button>
 );
 
-const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: AuthPageProps) => {
+const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup", onNeedsOtpVerify }: AuthPageProps) => {
   const [mode, setMode] = useState<AuthMode>(initialMode);
   // Prefill login with demo credentials to match the prototype's first-render
   // state (alex@example.com / ••••••••). Signup starts blank.
@@ -166,8 +167,12 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: Aut
           },
         });
         if (error) throw error;
-        toast.success("Check your email to verify your account!");
-        onAuthSuccess();
+        toast.success("Check your email for your 6-digit verification code!");
+        if (onNeedsOtpVerify) {
+          onNeedsOtpVerify(email);
+        } else {
+          onAuthSuccess();
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -379,6 +384,11 @@ const AuthPage = ({ onAuthSuccess, onBack, onSkip, initialMode = "signup" }: Aut
                     {isLogin ? "Create an account" : "Sign in"}
                   </button>
                 </div>
+                {!isLogin && (
+                  <p className="text-[11px] text-muted-foreground text-center leading-relaxed px-2">
+                    We'll email you a 6-digit verification code to confirm it's you. Two-factor authentication can be enabled later in Settings.
+                  </p>
+                )}
                 {onSkip && (
                   <button
                     onClick={onSkip}
