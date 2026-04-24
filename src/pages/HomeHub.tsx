@@ -34,7 +34,7 @@ interface HomeHubProps {
   onOpenRewards?: () => void;
   onOpenDiaries?: () => void;
   onLogHeadache?: () => void;
-  activeMigraine?: { startTime: Date } | null;
+  activeMigraine?: { startTime: Date; painPeak?: number; zones?: string[]; medsTaken?: string[]; attackLogId?: string } | null;
   onStopMigraine?: () => void;
   headacheCount?: number;
   isOnMode: boolean;

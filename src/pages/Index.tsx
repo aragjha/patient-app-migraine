@@ -31,6 +31,7 @@ import LogHeadacheFlow from "@/pages/LogHeadacheFlow";
 import PainReliefGuide from "@/pages/PainReliefGuide";
 import TriggerMedicationFlow from "@/pages/TriggerMedicationFlow";
 import TriggerAnalysis from "@/pages/TriggerAnalysis";
+import PostMigraineFlow from "@/pages/PostMigraineFlow";
 import { getTodaysLesson } from "@/data/lessonContent";
 import { getDiaryById } from "@/data/diaryContent";
 import { getMigraineDiaryById } from "@/data/migraineDiaryContent";
@@ -67,7 +68,8 @@ type AppScreen =
   | "trigger-analysis"
   | "rewards"
   | "relief-session"
-  | "verify-otp";
+  | "verify-otp"
+  | "post-migraine";
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("splash");
@@ -384,7 +386,10 @@ const Index = () => {
             onOpenDiaries={() => setCurrentScreen("diaries")}
             onLogHeadache={handleLogHeadache}
             activeMigraine={activeMigraine}
-            onStopMigraine={() => setActiveMigraine(null)}
+            onStopMigraine={() => {
+              setPreviousScreen("home");
+              setCurrentScreen("post-migraine");
+            }}
             headacheCount={headacheCount}
             isOnMode={isOnMode}
             onToggleMode={handleToggleMode}
@@ -585,6 +590,37 @@ const Index = () => {
             onOpenNeuraWithScript={(id) => {
               setPreviousScreen("rewards");
               handleOpenNeuraWithScript(id as ScriptId);
+            }}
+          />
+        );
+      case "post-migraine":
+        if (!activeMigraine) return null;
+        return (
+          <PostMigraineFlow
+            activeMigraine={activeMigraine}
+            onComplete={(patch) => {
+              if (activeMigraine.attackLogId) {
+                updateAttackLog(activeMigraine.attackLogId, patch);
+              } else {
+                const log: HeadacheLog = {
+                  id: crypto.randomUUID(),
+                  startTime: activeMigraine.startTime.toISOString(),
+                  zones: activeMigraine.zones ?? [],
+                  painPeak: activeMigraine.painPeak ?? 0,
+                  symptoms: [],
+                  triggers: [],
+                  medications: activeMigraine.medsTaken ?? [],
+                  ...patch,
+                  status: "ended",
+                };
+                setAttackLogs((prev) => [...prev, log]);
+              }
+              setActiveMigraine(null);
+              setCurrentScreen("home");
+            }}
+            onBack={() => {
+              setActiveMigraine(null);
+              setCurrentScreen("home");
             }}
           />
         );
