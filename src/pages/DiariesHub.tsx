@@ -7,6 +7,7 @@ import { migraineDiaryCategories } from "@/data/migraineDiaryContent";
 import { Diagnosis } from "@/components/OnboardingFlow";
 import { ScriptId } from "@/data/neuraScripts";
 import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { HeadacheLog, CheckInLog } from "@/types/logs";
 
 // Map diary category IDs to Neura scripts so tapping a diary tile opens Neura
 // pre-loaded with the matching script.
@@ -26,11 +27,9 @@ interface DiariesHubProps {
   onOpenDiary: (diaryId: string) => void;
   onOpenNeuraWithScript?: (scriptId: ScriptId | null) => void;
   diagnosis?: Diagnosis | null;
+  attackLogs?: HeadacheLog[];
+  checkInLogs?: CheckInLog[];
 }
-
-// Mock April 2026 attack intensities + check-ins (matches prototype's vibe).
-const MOCK_ATTACKS: Record<number, number> = { 3: 5, 4: 5, 7: 8, 15: 8, 16: 6 };
-const MOCK_CHECKINS = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17, 18, 19, 20, 21]);
 
 // ─── Shared UI ───
 
@@ -50,16 +49,28 @@ const StatCard = ({ v, l, c }: { v: string; l: string; c: string }) => (
 
 // ─── Calendar ───
 
-const MonthCalendar = ({ attacks, checkins }: { attacks: Record<number, number>; checkins: Set<number> }) => {
+const MonthCalendar = ({
+  attacks,
+  checkins,
+  label,
+  daysInMonth,
+  offset,
+  todayDay,
+}: {
+  attacks: Record<number, number>;
+  checkins: Set<number>;
+  label: string;
+  daysInMonth: number;
+  offset: number;
+  todayDay: number;
+}) => {
   const days: (number | null)[] = [];
-  // Apr 1 2026 → Wed (offset 3 from Sun).
-  const offset = 3;
   for (let i = 0; i < offset; i++) days.push(null);
-  for (let d = 1; d <= 30; d++) days.push(d);
+  for (let d = 1; d <= daysInMonth; d++) days.push(d);
   return (
     <div className="bg-card border border-border rounded-[22px] p-4">
       <div className="flex justify-between items-center mb-3.5">
-        <div className="text-[15px] font-bold text-foreground">April 2026</div>
+        <div className="text-[15px] font-bold text-foreground">{label}</div>
         <div className="flex gap-1">
           {[ChevronLeft, ChevronRight].map((I, i) => (
             <button
@@ -84,7 +95,7 @@ const MonthCalendar = ({ attacks, checkins }: { attacks: Record<number, number>;
           if (!d) return <div key={i} />;
           const p = attacks[d];
           const c = checkins.has(d);
-          const today = d === 21;
+          const today = d === todayDay;
           return (
             <div
               key={i}
@@ -159,17 +170,51 @@ const DiariesHub = ({
   onOpenDiary,
   onOpenNeuraWithScript,
   diagnosis,
+  attackLogs = [],
+  checkInLogs = [],
 }: DiariesHubProps) => {
   const [view, setView] = useState<"cal" | "list">("cal");
   const isMigraine = diagnosis === "migraine";
   const categories = isMigraine ? migraineDiaryCategories : diaryCategories;
 
-  const attacks = [
-    { d: "Apr 15", pain: 8, dur: "8h", trig: "Sleep deficit" },
-    { d: "Apr 7", pain: 8, dur: "5h", trig: "Red wine + weather" },
-    { d: "Apr 4", pain: 5, dur: "3h", trig: "Stress" },
-    { d: "Apr 3", pain: 5, dur: "2h", trig: "Dehydration" },
-  ];
+  // Current month for calendar
+  const now = new Date();
+  const calYear = now.getFullYear();
+  const calMonth = now.getMonth(); // 0-indexed
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+  const calOffset = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+  const calMonthLabel = now.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const todayDay = now.getDate();
+
+  // Map attack logs to { day: painLevel } for current month
+  const calAttacks: Record<number, number> = {};
+  attackLogs.forEach((l) => {
+    const d = new Date(l.startTime);
+    if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+      const day = d.getDate();
+      calAttacks[day] = Math.max(calAttacks[day] ?? 0, l.painPeak);
+    }
+  });
+
+  // Map check-in logs to Set<day> for current month
+  const calCheckins = new Set<number>();
+  checkInLogs.forEach((l) => {
+    const d = new Date(l.date);
+    if (d.getFullYear() === calYear && d.getMonth() === calMonth) {
+      calCheckins.add(d.getDate());
+    }
+  });
+
+  // Recent attacks list (last 10, newest first)
+  const recentAttacks = [...attackLogs]
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    .slice(0, 10)
+    .map((l) => ({
+      d: new Date(l.startTime).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+      pain: l.painPeak,
+      dur: l.duration ? `${Math.round(l.duration / 60)}h` : "—",
+      trig: l.triggers.length > 0 ? l.triggers.slice(0, 2).join(" + ") : "No triggers logged",
+    }));
 
   const topTriggers = [
     { t: "Sleep < 6h", pct: 78, c: "#7C3AED" },
@@ -241,13 +286,20 @@ const DiariesHub = ({
 
         {view === "cal" && (
           <motion.div className="mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <MonthCalendar attacks={MOCK_ATTACKS} checkins={MOCK_CHECKINS} />
+            <MonthCalendar
+              attacks={calAttacks}
+              checkins={calCheckins}
+              label={calMonthLabel}
+              daysInMonth={daysInMonth}
+              offset={calOffset}
+              todayDay={todayDay}
+            />
           </motion.div>
         )}
 
         {view === "list" && (
           <motion.div className="mb-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <AttackList items={attacks} />
+            <AttackList items={recentAttacks} />
           </motion.div>
         )}
 

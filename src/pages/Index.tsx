@@ -388,6 +388,8 @@ const Index = () => {
             onOpenDiary={handleOpenDiary}
             onOpenNeuraWithScript={handleOpenNeuraWithScript}
             diagnosis={diagnosis}
+            attackLogs={attackLogs}
+            checkInLogs={checkInLogs}
           />
         );
       case "diary-flow":
