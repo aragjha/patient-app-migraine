@@ -18,6 +18,13 @@ const OtpVerifyPage = ({ email, onVerified, onBack }: OtpVerifyPageProps) => {
   const inputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null));
   const autoSubmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup auto-submit timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
+    };
+  }, []);
+
   // Resend countdown
   useEffect(() => {
     if (resendCountdown <= 0) return;
@@ -27,15 +34,20 @@ const OtpVerifyPage = ({ email, onVerified, onBack }: OtpVerifyPageProps) => {
 
   const allFilled = digits.every((d) => d !== "");
 
-  const handleVerify = useCallback(async () => {
-    if (!allFilled || loading) return;
+  const handleVerify = useCallback((d = digits) => {
+    const code = d.join("");
+    if (code.length < 6 || loading) return;
     setLoading(true);
     setError(false);
-    // Demo: any 6-digit code succeeds after 600ms
-    await new Promise((r) => setTimeout(r, 600));
-    setLoading(false);
-    onVerified();
-  }, [allFilled, loading, onVerified]);
+    setTimeout(() => {
+      setLoading(false);
+      if (code === "000000") {
+        setError(true);
+      } else {
+        onVerified();
+      }
+    }, 600);
+  }, [digits, loading, onVerified]);
 
   const handleChange = (index: number, value: string) => {
     // Accept only digits; take last character typed (handles paste-one-char)
@@ -54,14 +66,7 @@ const OtpVerifyPage = ({ email, onVerified, onBack }: OtpVerifyPageProps) => {
       const allDone = next.every((d) => d !== "");
       if (allDone) {
         if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
-        autoSubmitTimerRef.current = setTimeout(() => {
-          setLoading(true);
-          setError(false);
-          setTimeout(() => {
-            setLoading(false);
-            onVerified();
-          }, 600);
-        }, 300);
+        autoSubmitTimerRef.current = setTimeout(() => handleVerify(next), 300);
       }
     }
   };
@@ -92,10 +97,7 @@ const OtpVerifyPage = ({ email, onVerified, onBack }: OtpVerifyPageProps) => {
     inputRefs.current[focusIdx]?.focus();
     if (pasted.length === 6) {
       if (autoSubmitTimerRef.current) clearTimeout(autoSubmitTimerRef.current);
-      autoSubmitTimerRef.current = setTimeout(() => {
-        setLoading(true);
-        setTimeout(() => { setLoading(false); onVerified(); }, 600);
-      }, 300);
+      autoSubmitTimerRef.current = setTimeout(() => handleVerify(next), 300);
     }
   };
 
@@ -152,7 +154,7 @@ const OtpVerifyPage = ({ email, onVerified, onBack }: OtpVerifyPageProps) => {
               ref={(el) => { inputRefs.current[i] = el; }}
               type="text"
               inputMode="numeric"
-              maxLength={2}
+              maxLength={1}
               value={digit}
               onChange={(e) => handleChange(i, e.target.value)}
               onKeyDown={(e) => handleKeyDown(i, e)}
