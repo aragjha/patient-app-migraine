@@ -6,9 +6,11 @@ import GratificationScreen from "@/components/GratificationScreen";
 import HeadDiagram, { HEAD_ZONES, BACK_ZONES } from "@/components/HeadDiagram";
 import PainSlider from "@/components/PainSlider";
 import { migraineAttackQuestions, AttackStep } from "@/data/migraineQuestionnaireContent";
+import { HeadacheLog } from "@/types/logs";
+import { timingToStartTime } from "@/utils/attackUtils";
 
 interface LogHeadacheFlowProps {
-  onComplete: () => void;
+  onComplete: (log: HeadacheLog) => void;
   onBack: () => void;
 }
 
@@ -110,11 +112,22 @@ const LogHeadacheFlow = ({ onComplete, onBack }: LogHeadacheFlowProps) => {
   const getQuestion = (id: string) => migraineAttackQuestions.find((q) => q.id === id);
 
   if (currentStep === "complete") {
+    const log: HeadacheLog = {
+      id: crypto.randomUUID(),
+      startTime: timingToStartTime(timing ?? "just_now"),
+      zones: selectedZones,
+      painPeak: painLevel,
+      symptoms: answers["symptoms_during"] ?? [],
+      triggers: answers["triggers"] ?? [],
+      medications: answers["medications_taken"] ?? [],
+      notes: notes || undefined,
+      status: "active",
+    };
     return (
       <GratificationScreen
         title="Headache Logged ✅"
         subtitle="Tracking attacks helps identify patterns and triggers."
-        onContinue={onComplete}
+        onContinue={() => onComplete(log)}
         ctaText="Back to Home"
         type="success"
       />

@@ -473,10 +473,16 @@ const Index = () => {
       case "log-headache":
         return (
           <LogHeadacheFlow
-            onComplete={() => {
+            onComplete={(log) => {
               setHeadacheCount((c) => c + 1);
-              setActiveMigraine({ startTime: new Date() });
-              // Smart dark mode
+              setAttackLogs((prev) => [...prev, log]);
+              setActiveMigraine({
+                startTime: new Date(log.startTime),
+                painPeak: log.painPeak,
+                zones: log.zones,
+                medsTaken: log.medications,
+                attackLogId: log.id,
+              });
               if (localStorage.getItem("smart-dark-mode") === "true") {
                 document.documentElement.classList.add("dark");
                 document.documentElement.setAttribute("data-theme", "dark");
