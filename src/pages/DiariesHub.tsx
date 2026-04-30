@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import BottomNav from "@/components/BottomNav";
 import DiaryTile from "@/components/DiaryTile";
@@ -6,7 +6,8 @@ import { diaryCategories } from "@/data/diaryContent";
 import { migraineDiaryCategories } from "@/data/migraineDiaryContent";
 import { Diagnosis } from "@/components/OnboardingFlow";
 import { ScriptId } from "@/data/neuraScripts";
-import { BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { BookOpen, ChevronLeft, ChevronRight, FlaskConical, Zap } from "lucide-react";
+import { computeCorrelations, getStoredSessions } from "@/data/triggerIdentificationEngine";
 import { HeadacheLog, CheckInLog } from "@/types/logs";
 
 // Map diary category IDs to Neura scripts so tapping a diary tile opens Neura
@@ -26,6 +27,7 @@ interface DiariesHubProps {
   onNavigate: (tab: "home" | "maps" | "tools" | "profile") => void;
   onOpenDiary: (diaryId: string) => void;
   onOpenNeuraWithScript?: (scriptId: ScriptId | null) => void;
+  onOpenTriggerDiary?: () => void;
   diagnosis?: Diagnosis | null;
   attackLogs?: HeadacheLog[];
   checkInLogs?: CheckInLog[];
@@ -169,6 +171,7 @@ const DiariesHub = ({
   onNavigate,
   onOpenDiary,
   onOpenNeuraWithScript,
+  onOpenTriggerDiary,
   diagnosis,
   attackLogs = [],
   checkInLogs = [],
@@ -216,11 +219,16 @@ const DiariesHub = ({
       trig: l.triggers.length > 0 ? l.triggers.slice(0, 2).join(" + ") : "No triggers logged",
     }));
 
-  const topTriggers = [
-    { t: "Sleep < 6h", pct: 78, c: "#7C3AED" },
-    { t: "Barometric drops", pct: 54, c: "#06B6D4" },
-    { t: "Red wine", pct: 31, c: "#EF4444" },
-  ];
+  const topTriggers = useMemo(() => {
+    const correlations = computeCorrelations(getStoredSessions());
+    const colors = ["#7C3AED", "#E8A838", "#EF4444", "#06B6D4", "#3B82F6"];
+    if (correlations.length === 0) return [];
+    return correlations.slice(0, 3).map((c, i) => ({
+      t: `${c.emoji} ${c.label}`,
+      pct: c.correlation,
+      c: colors[i % colors.length],
+    }));
+  }, []);
 
   return (
     <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
@@ -308,7 +316,7 @@ const DiariesHub = ({
           Top triggers · April
         </div>
         <div className="bg-card border border-border rounded-[20px] p-4 mb-4">
-          {topTriggers.map((t) => (
+          {topTriggers.length > 0 ? topTriggers.map((t) => (
             <div key={t.t} className="mb-2.5 last:mb-0">
               <div className="flex justify-between text-xs mb-1">
                 <span className="font-semibold text-foreground">{t.t}</span>
@@ -321,8 +329,73 @@ const DiariesHub = ({
                 />
               </div>
             </div>
-          ))}
+          )) : (
+            <p className="text-xs text-muted-foreground text-center py-2">Log a few headaches to see your top triggers here.</p>
+          )}
         </div>
+
+        {/* Trigger Investigation entry */}
+        <motion.button
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+          onClick={onOpenTriggerDiary}
+          className="w-full text-left mb-4"
+          style={{
+            background: "linear-gradient(135deg, rgba(27,42,78,0.06) 0%, rgba(124,58,237,0.08) 50%, rgba(59,130,246,0.06) 100%)",
+            border: "1.5px solid rgba(124,58,237,0.22)",
+            borderRadius: 20,
+            padding: "14px 16px",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+          }}
+        >
+          <div
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 15,
+              background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.12))",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <FlaskConical style={{ width: 22, height: 22, color: "#7C3AED" }} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div className="text-[14.5px] font-bold text-foreground mb-0.5">Trigger Investigation</div>
+            <div className="text-[12px] text-muted-foreground">
+              See which factors correlate with your attacks
+            </div>
+          </div>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 4,
+              background: "rgba(232,168,56,0.12)",
+              borderRadius: 8,
+              padding: "3px 7px",
+            }}
+          >
+            <Zap style={{ width: 10, height: 10, color: "#E8A838" }} />
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 800,
+                color: "#E8A838",
+                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+                letterSpacing: "0.06em",
+              }}
+            >
+              NEW
+            </span>
+          </div>
+        </motion.button>
 
         {/* Diary categories — single-question flows; open Neura script if mapped */}
         <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-2.5">

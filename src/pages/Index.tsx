@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/hooks/usePersistedState";
@@ -31,7 +31,17 @@ import LogHeadacheFlow from "@/pages/LogHeadacheFlow";
 import PainReliefGuide from "@/pages/PainReliefGuide";
 import TriggerMedicationFlow from "@/pages/TriggerMedicationFlow";
 import TriggerAnalysis from "@/pages/TriggerAnalysis";
+import TriggerDiary from "@/pages/TriggerDiary";
+import TriggerInsightPopup from "@/components/TriggerInsightPopup";
 import PostMigraineFlow from "@/pages/PostMigraineFlow";
+import {
+  ensureDemoData,
+  shouldShowInsightPopup,
+  getTopTriggerForInsight,
+  markInsightPopupShown,
+  saveHeadacheTriggerSession,
+  TriggerCorrelation,
+} from "@/data/triggerIdentificationEngine";
 import { getTodaysLesson } from "@/data/lessonContent";
 import { getDiaryById } from "@/data/diaryContent";
 import { getMigraineDiaryById } from "@/data/migraineDiaryContent";
@@ -66,6 +76,7 @@ type AppScreen =
   | "trigger-medication"
   | "pain-relief"
   | "trigger-analysis"
+  | "trigger-diary"
   | "rewards"
   | "relief-session"
   | "verify-otp"
@@ -107,11 +118,33 @@ const Index = () => {
   const [neuraInitialScript, setNeuraInitialScript] = useState<ScriptId | null>(null);
   const [neuraInitialQuery, setNeuraInitialQuery] = useState<string | null>(null);
 
+  // Trigger insight popup
+  const [triggerInsightOpen, setTriggerInsightOpen] = useState(false);
+  const [triggerInsightData, setTriggerInsightData] = useState<TriggerCorrelation | null>(null);
+  const hasCheckedInsightRef = useRef(false);
+
   const updateAttackLog = (id: string, patch: Partial<HeadacheLog>) => {
     setAttackLogs((prev) =>
       prev.map((l) => (l.id === id ? { ...l, ...patch } : l))
     );
   };
+
+  // Seed trigger demo data on mount
+  useEffect(() => {
+    ensureDemoData();
+  }, []);
+
+  // Show insight popup only after user first reaches home — never over auth/onboarding
+  useEffect(() => {
+    if (currentScreen !== "home" || hasCheckedInsightRef.current) return;
+    hasCheckedInsightRef.current = true;
+    const top = getTopTriggerForInsight();
+    if (shouldShowInsightPopup() && top) {
+      setTriggerInsightData(top);
+      const t = setTimeout(() => setTriggerInsightOpen(true), 2400);
+      return () => clearTimeout(t);
+    }
+  }, [currentScreen]);
 
   // Load mock data when demo mode is active
   useEffect(() => {
@@ -246,16 +279,14 @@ const Index = () => {
     setNeuraInitialQuery(query);
     setCurrentScreen("neurogpt");
   };
-  // Log-headache also runs as a Neura conversation in the prototype.
   const handleLogHeadache = () => {
     setPreviousScreen(currentScreen);
-    setNeuraInitialScript("headache-log");
-    setNeuraInitialQuery(null);
-    setCurrentScreen("neurogpt");
+    setCurrentScreen("log-headache");
   };
   const handleOpenTriggerMedication = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-medication"); };
   const handleOpenPainRelief = () => { setPreviousScreen(currentScreen); setCurrentScreen("pain-relief"); };
   const handleOpenTriggerAnalysis = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-analysis"); };
+  const handleOpenTriggerDiary = () => { setPreviousScreen(currentScreen); setCurrentScreen("trigger-diary"); };
 
   const handleOpenAppointments = () => {
     setPreviousScreen(currentScreen);
@@ -410,9 +441,17 @@ const Index = () => {
             onNavigate={handleNavigate}
             onOpenDiary={handleOpenDiary}
             onOpenNeuraWithScript={handleOpenNeuraWithScript}
+            onOpenTriggerDiary={handleOpenTriggerDiary}
             diagnosis={diagnosis}
             attackLogs={attackLogs}
             checkInLogs={checkInLogs}
+          />
+        );
+      case "trigger-diary":
+        return (
+          <TriggerDiary
+            onBack={() => setCurrentScreen(previousScreen === "trigger-diary" ? "diaries" : previousScreen)}
+            onAskNeura={handleOpenNeuroGPT}
           />
         );
       case "diary-flow":
@@ -617,6 +656,18 @@ const Index = () => {
             }}
           />
         );
+      case "log-headache":
+        return (
+          <LogHeadacheFlow
+            onComplete={(log) => {
+              setAttackLogs((prev) => [...prev, log]);
+              setHeadacheCount((prev) => prev + 1);
+              saveHeadacheTriggerSession(log.triggers);
+              setCurrentScreen(previousScreen === "log-headache" ? "home" : previousScreen);
+            }}
+            onBack={() => setCurrentScreen(previousScreen === "log-headache" ? "home" : previousScreen)}
+          />
+        );
       case "post-migraine":
         if (!activeMigraine) return null;
         return (
@@ -666,6 +717,23 @@ const Index = () => {
           {renderScreen()}
         </motion.div>
       </AnimatePresence>
+
+      {/* Global trigger insight popup — fires after 3+ sessions */}
+      {triggerInsightData && (
+        <TriggerInsightPopup
+          trigger={triggerInsightData}
+          open={triggerInsightOpen}
+          onOpenDiary={() => {
+            setTriggerInsightOpen(false);
+            markInsightPopupShown();
+            handleOpenTriggerDiary();
+          }}
+          onDismiss={() => {
+            setTriggerInsightOpen(false);
+            markInsightPopupShown();
+          }}
+        />
+      )}
     </div>
   );
 };
