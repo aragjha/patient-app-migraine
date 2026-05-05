@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/hooks/usePersistedState";
 import { HeadacheLog, CheckInLog } from "@/types/logs";
+import { recordActivity, seedStreakDemoData } from "@/data/streakEngine";
 import SplashScreen from "@/components/SplashScreen";
 import OnboardingFlow, { OnboardingState, Diagnosis } from "@/components/OnboardingFlow";
 import AuthPage from "@/pages/AuthPage";
@@ -29,6 +30,8 @@ import ConsentScreen from "@/components/ConsentScreen";
 import ValuePropScreens from "@/components/ValuePropScreens";
 import LogHeadacheFlow from "@/pages/LogHeadacheFlow";
 import PainReliefGuide from "@/pages/PainReliefGuide";
+import ReportPage from "@/pages/ReportPage";
+import LastAttackSheet, { LastAttackData } from "@/components/LastAttackSheet";
 import TriggerMedicationFlow from "@/pages/TriggerMedicationFlow";
 import TriggerAnalysis from "@/pages/TriggerAnalysis";
 import TriggerDiary from "@/pages/TriggerDiary";
@@ -80,7 +83,8 @@ type AppScreen =
   | "rewards"
   | "relief-session"
   | "verify-otp"
-  | "post-migraine";
+  | "post-migraine"
+  | "report";
 
 const Index = () => {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>("splash");
@@ -114,6 +118,8 @@ const Index = () => {
     attackLogId?: string;
   } | null>(null);
 
+  const [lastAttackSheetOpen, setLastAttackSheetOpen] = useState(false);
+
   // Neura script targeting (set when home tiles/CTAs want Neura to start a specific flow)
   const [neuraInitialScript, setNeuraInitialScript] = useState<ScriptId | null>(null);
   const [neuraInitialQuery, setNeuraInitialQuery] = useState<string | null>(null);
@@ -129,9 +135,11 @@ const Index = () => {
     );
   };
 
-  // Seed trigger demo data on mount
+  // Seed trigger demo data only when in demo mode — real users start empty
   useEffect(() => {
-    ensureDemoData();
+    if (localStorage.getItem("nc-demo-mode") === "true") {
+      ensureDemoData();
+    }
   }, []);
 
   // Show insight popup only after user first reaches home — never over auth/onboarding
@@ -253,11 +261,10 @@ const Index = () => {
     setCurrentScreen(isOn ? "home" : "home-off");
   };
 
-  // In the prototype, check-in runs as a scripted Neura conversation rather
-  // than a standalone modal. Route through Neura with the daily-checkin script.
+  // Check-in routes through Neura with the daily-discovery script
   const handleStartCheckin = () => {
     setPreviousScreen(currentScreen);
-    setNeuraInitialScript("daily-checkin");
+    setNeuraInitialScript("daily-discovery");
     setNeuraInitialQuery(null);
     setCurrentScreen("neurogpt");
   };
@@ -430,6 +437,7 @@ const Index = () => {
             onOpenTriggerMedication={handleOpenTriggerMedication}
             onOpenPainRelief={handleOpenPainRelief}
             onOpenTriggerAnalysis={handleOpenTriggerAnalysis}
+            onOpenLastAttack={() => setLastAttackSheetOpen(true)}
           />
         );
       case "home-off":
@@ -452,6 +460,7 @@ const Index = () => {
           <TriggerDiary
             onBack={() => setCurrentScreen(previousScreen === "trigger-diary" ? "diaries" : previousScreen)}
             onAskNeura={handleOpenNeuroGPT}
+            onStartCheckin={handleStartCheckin}
           />
         );
       case "diary-flow":
@@ -546,6 +555,8 @@ const Index = () => {
             onComplete={(log) => {
               setHeadacheCount((c) => c + 1);
               setAttackLogs((prev) => [...prev, log]);
+              recordActivity("attack-log");
+              saveHeadacheTriggerSession(log.triggers);
               setActiveMigraine({
                 startTime: new Date(log.startTime),
                 painPeak: log.painPeak,
@@ -606,14 +617,63 @@ const Index = () => {
               setPreviousScreen("neurogpt");
               handleOpenNeuraWithScript("headache-log");
             }}
+            onScriptComplete={(scriptId, answers) => {
+              if (scriptId === "daily-discovery" || scriptId === "daily-checkin") {
+                recordActivity("check-in");
+                // Persist answers as a CheckInLog
+                const lifestyle = answers?.["lifestyle"]?.value as string[] | undefined;
+                const headPain = answers?.["headPain"]?.value as string[] | undefined;
+                const quickFactor = answers?.["quickFactor"]?.value as string[] | undefined;
+                const overall = answers?.["overall"]?.value;
+                const sleep = answers?.["sleep"]?.value as string[] | undefined;
+                const meds = answers?.["meds"]?.value as string[] | undefined;
+                const headPainId = headPain?.[0];
+                const checkin: CheckInLog = {
+                  id: crypto.randomUUID(),
+                  date: new Date().toISOString().slice(0, 10),
+                  feeling: typeof overall === "number" ? overall : 5,
+                  hadHeadache: !!headPainId && headPainId !== "none",
+                  headacheSeverity: headPainId,
+                  sleepQuality: sleep?.[0] ?? lifestyle?.[0],
+                  medicationTaken: meds?.[0],
+                  mood: quickFactor?.[0],
+                };
+                setCheckInLogs((prev) => [...prev, checkin]);
+              } else if (scriptId === "medication-check") {
+                recordActivity("medication-log");
+              } else if (scriptId === "medication-add" && answers) {
+                const nameId = (answers["name"]?.value as string[] | undefined)?.[0];
+                const scheduleId = (answers["schedule"]?.value as string[] | undefined)?.[0];
+                const remindersId = (answers["reminders"]?.value as string[] | undefined)?.[0];
+                if (nameId && nameId !== "other") {
+                  const newMed: Medication = {
+                    id: crypto.randomUUID(),
+                    name: nameId.charAt(0).toUpperCase() + nameId.slice(1),
+                    dosage: 50,
+                    quantity: 30,
+                    type: "tablet",
+                    frequency:
+                      scheduleId === "weekly"
+                        ? "once"
+                        : scheduleId === "asneeded"
+                          ? "as_needed"
+                          : "once",
+                    times: ["morning"],
+                    reminderEnabled: remindersId === "yes",
+                    color: "#3B82F6",
+                  };
+                  setMedications((prev) => [...prev, newMed]);
+                }
+              }
+            }}
             onHeadacheLogged={(data) => {
               const log: HeadacheLog = {
                 id: crypto.randomUUID(),
                 startTime: data.startTime.toISOString(),
                 zones: data.zones ?? [],
                 painPeak: data.painPeak ?? 5,
-                symptoms: [],
-                triggers: [],
+                symptoms: data.symptoms ?? [],
+                triggers: data.triggers ?? [],
                 medications: [],
                 status: "active",
               };
@@ -636,8 +696,13 @@ const Index = () => {
             onRestartOnboarding={() => setCurrentScreen("splash")}
             onOpenNeura={() => { setPreviousScreen("profile"); handleOpenNeuroGPT(); }}
             onOpenDiary={() => setCurrentScreen("diaries")}
+            onOpenReport={() => { setPreviousScreen("profile"); setCurrentScreen("report"); }}
             onLog={() => { setPreviousScreen("profile"); handleOpenNeuraWithScript("headache-log"); }}
           />
+        );
+      case "report":
+        return (
+          <ReportPage onBack={() => setCurrentScreen(previousScreen === "report" ? "profile" : previousScreen)} />
         );
       case "relief-session":
         return (
@@ -654,18 +719,6 @@ const Index = () => {
               setPreviousScreen("rewards");
               handleOpenNeuraWithScript(id as ScriptId);
             }}
-          />
-        );
-      case "log-headache":
-        return (
-          <LogHeadacheFlow
-            onComplete={(log) => {
-              setAttackLogs((prev) => [...prev, log]);
-              setHeadacheCount((prev) => prev + 1);
-              saveHeadacheTriggerSession(log.triggers);
-              setCurrentScreen(previousScreen === "log-headache" ? "home" : previousScreen);
-            }}
-            onBack={() => setCurrentScreen(previousScreen === "log-headache" ? "home" : previousScreen)}
           />
         );
       case "post-migraine":
@@ -717,6 +770,30 @@ const Index = () => {
           {renderScreen()}
         </motion.div>
       </AnimatePresence>
+
+      {/* Last attack sheet — triggered from home first-visit banner */}
+      <LastAttackSheet
+        open={lastAttackSheetOpen}
+        onClose={() => setLastAttackSheetOpen(false)}
+        onComplete={(data: LastAttackData) => {
+          // Store relief preference
+          if (data.reliefPref) localStorage.setItem("nc-relief-pref", data.reliefPref);
+          // Create a historical attack log
+          const log: HeadacheLog = {
+            id: crypto.randomUUID(),
+            startTime: new Date(Date.now() - 86_400_000).toISOString(), // rough proxy
+            zones: [],
+            painPeak: data.pain,
+            symptoms: [],
+            triggers: [],
+            medications: [],
+            status: "ended",
+          };
+          setAttackLogs((prev) => [...prev, log]);
+          setHeadacheCount((c) => c + 1);
+          localStorage.setItem("nc-last-attack-dismissed", "true");
+        }}
+      />
 
       {/* Global trigger insight popup — fires after 3+ sessions */}
       {triggerInsightData && (

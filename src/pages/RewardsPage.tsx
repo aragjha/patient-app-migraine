@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import {
-  X,
-  Flame,
-  Check,
-  Sparkles,
-  Zap,
-  Trophy,
-  BookOpen,
-  Gift,
-  Snowflake,
-} from "lucide-react";
-import { usePersistedState } from "@/hooks/usePersistedState";
+import { motion, AnimatePresence } from "framer-motion";
+import { ArrowLeft, Flame, Gift, Copy, Check } from "lucide-react";
+import { getStreakData } from "@/data/streakEngine";
 
 interface RewardsPageProps {
   onBack: () => void;
@@ -19,540 +9,268 @@ interface RewardsPageProps {
   onOpenNeuraWithScript?: (scriptId: string) => void;
 }
 
-interface Tier {
+interface Milestone {
   id: string;
   name: string;
-  from: number;
-  to: number;
-  accent: string;
-  bg: string;
+  description: string;
+  requirement: string;
+  reward: string;
+  thresholdDays: number;
+  couponCode: string;
 }
 
-const TIERS: Tier[] = [
-  { id: "seed", name: "Seed", from: 0, to: 250, accent: "#94A3B8", bg: "linear-gradient(135deg, #E2E8F0, #CBD5E1)" },
-  { id: "sprout", name: "Sprout", from: 250, to: 500, accent: "#16A34A", bg: "linear-gradient(135deg, #BBF7D0, #86EFAC)" },
-  { id: "bloom", name: "Bloom", from: 500, to: 1000, accent: "#3B82F6", bg: "linear-gradient(135deg, #BFDBFE, #93C5FD)" },
-  { id: "canopy", name: "Canopy", from: 1000, to: 2500, accent: "#7C3AED", bg: "linear-gradient(135deg, #DDD6FE, #C4B5FD)" },
-  { id: "grove", name: "Grove", from: 2500, to: 5000, accent: "#D97757", bg: "linear-gradient(135deg, #FFB547, #FF6B5C)" },
-  { id: "canyon", name: "Canyon", from: 5000, to: 10000, accent: "#1B2A4E", bg: "linear-gradient(135deg, #1B2A4E, #7C3AED)" },
+const MILESTONES: Milestone[] = [
+  { id: "7day", name: "Daily Diary Warrior", description: "7-day streak", requirement: "Complete daily check-ins for 7 days in a row", reward: "$10 Amazon gift card", thresholdDays: 7, couponCode: "NDAI-7DAY-A1B2" },
+  { id: "14day", name: "2-Week Warrior", description: "14-day streak", requirement: "Keep your streak alive for 14 days", reward: "$25 Amazon gift card", thresholdDays: 14, couponCode: "NDAI-14D-C3D4" },
+  { id: "30day", name: "Month Champion", description: "30-day streak", requirement: "30 consecutive days of check-ins", reward: "$50 Amazon gift card", thresholdDays: 30, couponCode: "NDAI-30D-E5F6" },
+  { id: "90day", name: "Research Partner", description: "90 days active", requirement: "90 days of consistent logging", reward: "$100 Amazon gift card", thresholdDays: 90, couponCode: "NDAI-90D-G7H8" },
 ];
 
-const tierFor = (points: number): Tier =>
-  TIERS.find((t) => points >= t.from && points < t.to) || TIERS[TIERS.length - 1];
+const DAYS_OF_WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-const WeeklyRing = ({ done, goal }: { done: number; goal: number }) => {
-  const R = 42;
-  const C = 2 * Math.PI * R;
-  const pct = Math.min(done / goal, 1);
-  return (
-    <div className="relative w-[108px] h-[108px]">
-      <svg viewBox="0 0 108 108" width="108" height="108" style={{ transform: "rotate(-90deg)" }}>
-        <circle cx="54" cy="54" r={R} fill="none" stroke="hsl(var(--border))" strokeWidth="8" />
-        <circle
-          cx="54"
-          cy="54"
-          r={R}
-          fill="none"
-          stroke="url(#ringGrad)"
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - pct)}
-          style={{ transition: "stroke-dashoffset .8s cubic-bezier(.2,.9,.2,1)" }}
-        />
-        <defs>
-          <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#FF9B5A" />
-            <stop offset="1" stopColor="#FF6B5C" />
-          </linearGradient>
-        </defs>
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center leading-none">
-        <div
-          className="text-[28px] font-extrabold text-foreground"
-          style={{ fontFamily: "'Fraunces', Georgia, serif" }}
-        >
-          {done}
-        </div>
-        <div className="text-[10px] text-muted-foreground font-semibold mt-0.5 tabular-nums">
-          of {goal}
-        </div>
-      </div>
-    </div>
-  );
-};
+function getWeekDots(activities: Array<{ date: string }>) {
+  const today = new Date();
+  const dow = today.getDay(); // 0=Sun
+  const monday = new Date(today.getTime() - ((dow === 0 ? 6 : dow - 1) * 86_400_000));
+  return DAYS_OF_WEEK.map((_, i) => {
+    const d = new Date(monday.getTime() + i * 86_400_000);
+    const dateStr = d.toISOString().split("T")[0];
+    return activities.some((a) => a.date === dateStr);
+  });
+}
 
-const StreakCalendar = () => {
-  const days = ["M", "T", "W", "T", "F", "S", "S"];
-  const todayIdx = new Date().getDay();
-  const visibleToday = todayIdx === 0 ? 6 : todayIdx - 1;
-  return (
-    <div className="flex gap-1.5 justify-between">
-      {days.map((d, i) => {
-        const done = i <= visibleToday;
-        const today = i === visibleToday;
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1">
-            <div
-              className={`text-[9px] tracking-wider ${
-                today ? "text-foreground font-extrabold" : "text-muted-foreground font-semibold"
-              }`}
-            >
-              {d}
-            </div>
-            <div
-              className="w-full aspect-square rounded-[10px] flex items-center justify-center"
-              style={{
-                background: done
-                  ? "linear-gradient(135deg, #FF9B5A, #FF6B5C)"
-                  : "hsl(var(--muted))",
-                border: today ? "2px solid hsl(var(--foreground))" : 0,
-                color: done ? "#fff" : "hsl(var(--muted-foreground))",
-              }}
-            >
-              {done ? <Flame className="w-3.5 h-3.5" strokeWidth={2.4} /> : null}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const TierTrack = ({ points }: { points: number }) => {
-  const cur = tierFor(points);
-  const curIdx = TIERS.indexOf(cur);
-  const nextTier = TIERS[Math.min(curIdx + 1, TIERS.length - 1)];
-  const into = points - cur.from;
-  const span = cur.to - cur.from;
-  const pct = Math.min(into / span, 1);
-
-  return (
-    <div>
-      <div className="flex justify-between mb-2 items-baseline">
-        <div className="text-sm font-bold text-foreground">
-          {cur.name}{" "}
-          <span className="text-muted-foreground font-medium text-xs">
-            · tier {curIdx + 1} of {TIERS.length}
-          </span>
-        </div>
-        <div
-          className="text-[11px] text-muted-foreground tabular-nums"
-          style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
-        >
-          {cur.to - points} pts to {nextTier.name}
-        </div>
-      </div>
-      <div className="relative h-2.5 bg-muted rounded-full overflow-hidden">
-        <div
-          className="absolute inset-0 rounded-full transition-[width] duration-700"
-          style={{
-            width: `${pct * 100}%`,
-            background: cur.bg,
-          }}
-        />
-      </div>
-      <div className="flex justify-between mt-2">
-        {TIERS.map((t) => {
-          const unlocked = points >= t.from;
-          return (
-            <div
-              key={t.id}
-              className="flex flex-col items-center gap-1"
-              style={{ opacity: unlocked ? 1 : 0.35 }}
-            >
-              <div
-                className="w-2.5 h-2.5 rounded-full border-2 border-card"
-                style={{ background: unlocked ? t.accent : "hsl(var(--border))" }}
-              />
-              <div
-                className="text-[8.5px] text-muted-foreground font-semibold tabular-nums"
-                style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace" }}
-              >
-                {t.from}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const RewardsPage = ({ onBack, onOpenNeura, onOpenNeuraWithScript }: RewardsPageProps) => {
-  const [points] = usePersistedState("nc-points", 480);
-  const [streak] = usePersistedState("nc-streak", 12);
-  const [freezes] = usePersistedState("nc-freezes", 2);
-  const [lastRewardAt] = usePersistedState<number | null>("nc-last-reward-at", null);
-
-  const cur = tierFor(points);
-  const curIdx = TIERS.indexOf(cur);
-  const nextTier = TIERS[Math.min(curIdx + 1, TIERS.length - 1)];
-  const weeklyDone = 4;
-  const weeklyGoal = 7;
-
-  const [boost, setBoost] = useState(false);
-  useEffect(() => {
-    if (lastRewardAt && Date.now() - lastRewardAt < 3000) {
-      setBoost(true);
-      const t = setTimeout(() => setBoost(false), 2400);
-      return () => clearTimeout(t);
-    }
-  }, [lastRewardAt]);
-
-  const quests = [
-    {
-      id: "checkin" as const,
-      icon: Check,
-      label: "Today's check-in",
-      sub: "Locks your streak",
-      pts: 30,
-      done: false,
-    },
-    {
-      id: "log" as const,
-      icon: Zap,
-      label: "Log an attack if any",
-      sub: "Or skip if attack-free",
-      pts: 50,
-      done: false,
-    },
-    {
-      id: "chat" as const,
-      icon: Sparkles,
-      label: "Ask Neura one thing",
-      sub: "About your patterns",
-      pts: 15,
-      done: true,
-    },
-  ];
-
-  const milestones = [
-    { pts: 100, title: "First steps", desc: "10 days of check-ins", done: true },
-    { pts: 250, title: "Consistent", desc: "2-week streak", done: true },
-    {
-      pts: 500,
-      title: "Trigger Sleuth",
-      desc: "Logged 20 attacks",
-      done: points >= 500,
-      progress: Math.min(Math.round((points / 500) * 100), 100),
-    },
-    {
-      pts: 1000,
-      title: "Diary Champion",
-      desc: "$25 gift card",
-      done: points >= 1000,
-      progress: Math.min(Math.round((points / 1000) * 100), 100),
-    },
-    {
-      pts: 2500,
-      title: "Research Partner",
-      desc: "$100 + Abbvie badge",
-      done: points >= 2500,
-      progress: Math.min(Math.round((points / 2500) * 100), 100),
-    },
-  ];
-
-  const earnings = [
-    { icon: Flame, l: "Daily check-in", p: "+30" },
-    { icon: Zap, l: "Log a headache", p: "+50" },
-    { icon: Sparkles, l: "Ask Neura one thing", p: "+15" },
-    { icon: BookOpen, l: "Weekly questionnaire", p: "+200" },
-    { icon: Gift, l: "Invite a friend", p: "+500" },
-  ];
-
-  const handleQuest = (id: "checkin" | "log" | "chat") => {
-    if (id === "checkin") onOpenNeuraWithScript?.("daily-checkin");
-    else if (id === "log") onOpenNeuraWithScript?.("headache-log");
-    else onOpenNeura?.();
+const CouponModal = ({ milestone, onClose }: { milestone: Milestone; onClose: () => void }) => {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(milestone.couponCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {}
   };
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{ position: "fixed", inset: 0, zIndex: 400, background: "rgba(10,13,28,0.8)", backdropFilter: "blur(10px)", WebkitBackdropFilter: "blur(10px)", display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.88, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.88, opacity: 0 }}
+        transition={{ type: "spring", stiffness: 280, damping: 24 }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ width: "100%", maxWidth: 360, background: "hsl(var(--card))", borderRadius: 24, padding: "28px 24px", textAlign: "center", boxShadow: "0 32px 80px rgba(0,0,0,0.5)" }}
+      >
+        <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
+        <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 24, fontWeight: 600, color: "hsl(var(--foreground))", margin: "0 0 6px" }}>
+          You unlocked a reward!
+        </h2>
+        <div style={{ fontSize: 14, color: "hsl(var(--muted-foreground))", marginBottom: 20 }}>
+          {milestone.name} — {milestone.description}
+        </div>
+
+        <div style={{ background: "hsl(var(--muted))", borderRadius: 14, padding: "14px 16px", marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", marginBottom: 6 }}>YOUR AMAZON CODE</div>
+          <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 18, fontWeight: 700, color: "hsl(var(--foreground))", letterSpacing: "0.08em" }}>
+            {milestone.couponCode}
+          </div>
+        </div>
+
+        <button
+          onClick={handleCopy}
+          style={{ width: "100%", height: 48, borderRadius: 24, border: 0, cursor: "pointer", color: "white", fontSize: 14, fontWeight: 700, background: copied ? "#10B981" : "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)", marginBottom: 10, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+        >
+          {copied ? <Check style={{ width: 16, height: 16 }} /> : <Copy style={{ width: 16, height: 16 }} />}
+          {copied ? "Copied!" : "Copy code"}
+        </button>
+        <div style={{ fontSize: 11.5, color: "hsl(var(--muted-foreground))", lineHeight: 1.5 }}>
+          Check your email for verification instructions to redeem.
+        </div>
+        <button onClick={onClose} style={{ marginTop: 14, background: "none", border: 0, cursor: "pointer", fontSize: 13, color: "hsl(var(--muted-foreground))" }}>
+          Close
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+const RewardsPage = ({ onBack }: RewardsPageProps) => {
+  const [streak, setStreak] = useState(0);
+  const [weekDots, setWeekDots] = useState<boolean[]>(Array(7).fill(false));
+  const [activeCoupon, setActiveCoupon] = useState<Milestone | null>(null);
+  const [shownCoupons, setShownCoupons] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const sd = getStreakData();
+    setStreak(sd.currentStreak);
+    setWeekDots(getWeekDots(sd.activities));
+
+    // Auto-show coupon for the HIGHEST newly-unlocked milestone (most rewarding wins)
+    const shown = JSON.parse(localStorage.getItem("nc-shown-coupons") || "[]") as string[];
+    const shownSet = new Set<string>(shown);
+    setShownCoupons(shownSet);
+    const newlyUnlocked = MILESTONES
+      .filter((m) => sd.currentStreak >= m.thresholdDays && !shownSet.has(m.id))
+      .sort((a, b) => b.thresholdDays - a.thresholdDays);
+    if (newlyUnlocked.length > 0) {
+      const highest = newlyUnlocked[0];
+      setActiveCoupon(highest);
+      // Mark all newly-unlocked milestones as shown so we don't backfire on next visit
+      const newShown = [...shown, ...newlyUnlocked.map((m) => m.id)];
+      localStorage.setItem("nc-shown-coupons", JSON.stringify(newShown));
+      setShownCoupons(new Set(newShown));
+    }
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-[100] bg-background text-foreground flex flex-col">
-      <style>{`
-        @keyframes pointsPop {
-          0% { transform: scale(1); }
-          30% { transform: scale(1.18); }
-          100% { transform: scale(1); }
-        }
-      `}</style>
-
-      {/* Modal shell — close + step + progress */}
-      <div className="px-5 pt-14 pb-3 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="w-9 h-9 rounded-full flex items-center justify-center cursor-pointer border-0"
-          style={{ background: "var(--bg-deep)", color: "var(--ink)" }}
-          aria-label="Close"
-        >
-          <X className="w-[18px] h-[18px]" strokeWidth={2.2} />
-        </button>
-        <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--bg-deep)" }}>
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: "100%",
-              background: "linear-gradient(90deg, var(--nc-accent), var(--plum))",
-            }}
-          />
+    <>
+      <div className="min-h-[100dvh] flex flex-col bg-background text-foreground">
+        {/* Header */}
+        <div style={{ padding: "52px 20px 0", display: "flex", alignItems: "flex-start", gap: 12 }}>
+          <button
+            onClick={onBack}
+            style={{ width: 40, height: 40, borderRadius: "50%", background: "hsl(var(--card))", border: "1.5px solid hsl(var(--border))", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", flexShrink: 0, marginTop: 4 }}
+          >
+            <ArrowLeft style={{ width: 18, height: 18 }} />
+          </button>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.15em", color: "hsl(var(--muted-foreground))", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", marginBottom: 4 }}>
+              Rewards
+            </div>
+            <h1 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 30, fontWeight: 600, letterSpacing: "-0.025em", color: "hsl(var(--foreground))", margin: 0, lineHeight: 1.1 }}>
+              Keep your <em style={{ fontStyle: "italic", color: "hsl(var(--accent))" }}>streak</em> alive
+            </h1>
+          </div>
         </div>
-        <div
-          className="text-[11px] font-bold tabular-nums"
-          style={{
-            color: "var(--nc-muted)",
-            fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-            minWidth: 28,
-            textAlign: "right",
-          }}
-        >
-          1/1
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 20px 60px", display: "flex", flexDirection: "column", gap: 24 }}>
+
+          {/* Streak hero */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            style={{ background: "linear-gradient(135deg, #FF9B5A 0%, #FF6B5C 100%)", borderRadius: 24, padding: "24px 20px", color: "white", textAlign: "center", boxShadow: "0 16px 40px rgba(255,107,92,0.3)" }}
+          >
+            <Flame style={{ width: 36, height: 36, margin: "0 auto 8px" }} />
+            <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 52, fontWeight: 800, lineHeight: 1 }}>{streak}</div>
+            <div style={{ fontSize: 16, fontWeight: 600, opacity: 0.9, marginBottom: 4 }}>
+              {streak === 1 ? "Day streak" : "Day streak"}
+            </div>
+            <div style={{ fontSize: 13, opacity: 0.75 }}>Check in daily to keep it going</div>
+          </motion.div>
+
+          {/* Weekly dots */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.06 }}
+            style={{ background: "hsl(var(--card))", border: "1.5px solid hsl(var(--border))", borderRadius: 20, padding: "16px 18px" }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 700, color: "hsl(var(--foreground))", marginBottom: 12 }}>This week</div>
+            <div style={{ display: "flex", justifyContent: "space-between" }}>
+              {DAYS_OF_WEEK.map((day, i) => (
+                <div key={day} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+                  <div
+                    style={{
+                      width: 32, height: 32, borderRadius: "50%",
+                      background: weekDots[i] ? "linear-gradient(135deg, #FF9B5A, #FF6B5C)" : "hsl(var(--muted))",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      boxShadow: weekDots[i] ? "0 4px 10px rgba(255,107,92,0.35)" : "none",
+                    }}
+                  >
+                    {weekDots[i] && <Check style={{ width: 14, height: 14, color: "white" }} />}
+                  </div>
+                  <div style={{ fontSize: 10, fontWeight: 600, color: "hsl(var(--muted-foreground))" }}>{day}</div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Milestones intro card (first time) */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", color: "hsl(var(--muted-foreground))", fontFamily: "'JetBrains Mono', monospace", textTransform: "uppercase", marginBottom: 10 }}>
+              Milestones
+            </div>
+            <div style={{ background: "rgba(59,130,246,0.07)", border: "1px solid rgba(59,130,246,0.18)", borderRadius: 16, padding: "12px 14px", fontSize: 13, color: "hsl(var(--muted-foreground))", lineHeight: 1.55, marginBottom: 12 }}>
+              Complete daily check-ins to unlock rewards. Amazon gift cards are sent to your email after verification.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {MILESTONES.map((m, i) => {
+                const unlocked = streak >= m.thresholdDays;
+                const progress = Math.min(streak / m.thresholdDays, 1);
+                return (
+                  <motion.div
+                    key={m.id}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.1 + i * 0.05 }}
+                    style={{
+                      background: unlocked ? "rgba(16,185,129,0.06)" : "hsl(var(--card))",
+                      border: `1.5px solid ${unlocked ? "rgba(16,185,129,0.3)" : "hsl(var(--border))"}`,
+                      borderRadius: 16,
+                      padding: "14px 16px",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 10 }}>
+                      <div
+                        style={{
+                          width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                          background: unlocked ? "rgba(16,185,129,0.15)" : "hsl(var(--muted))",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}
+                      >
+                        {unlocked
+                          ? <Gift style={{ width: 18, height: 18, color: "#10B981" }} />
+                          : <Gift style={{ width: 18, height: 18, color: "hsl(var(--muted-foreground))" }} />}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 14, fontWeight: 700, color: "hsl(var(--foreground))", marginBottom: 2 }}>{m.name}</div>
+                        <div style={{ fontSize: 12, color: "hsl(var(--muted-foreground))", marginBottom: 4 }}>{m.requirement}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: unlocked ? "#10B981" : "#3B82F6" }}>{m.reward}</div>
+                      </div>
+                      {unlocked && (
+                        <button
+                          onClick={() => setActiveCoupon(m)}
+                          style={{ padding: "6px 12px", borderRadius: 20, border: 0, cursor: "pointer", color: "white", fontSize: 12, fontWeight: 700, background: "#10B981", flexShrink: 0 }}
+                        >
+                          Claim
+                        </button>
+                      )}
+                    </div>
+                    {/* Progress bar */}
+                    <div style={{ height: 4, borderRadius: 2, background: "hsl(var(--muted))", overflow: "hidden" }}>
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress * 100}%` }}
+                        transition={{ delay: 0.2 + i * 0.05, duration: 0.7 }}
+                        style={{ height: "100%", borderRadius: 2, background: unlocked ? "#10B981" : "linear-gradient(90deg, #FF9B5A, #FF6B5C)" }}
+                      />
+                    </div>
+                    <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))", marginTop: 5 }}>
+                      {unlocked ? "Completed ✓" : `${streak} of ${m.thresholdDays} days`}
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          </motion.div>
         </div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex-1 px-5 pb-16 overflow-y-auto"
-      >
-        {/* Hero */}
-        <div
-          className="relative overflow-hidden rounded-[28px] text-white mb-3.5"
-          style={{ background: cur.bg, padding: "22px 22px 24px" }}
-        >
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              right: -40,
-              top: -40,
-              width: 180,
-              height: 180,
-              borderRadius: "50%",
-              background: "rgba(255,255,255,0.18)",
-            }}
-          />
-          <div
-            className="absolute pointer-events-none"
-            style={{
-              left: -30,
-              bottom: -50,
-              width: 140,
-              height: 140,
-              borderRadius: "50%",
-              background: "rgba(0,0,0,0.08)",
-            }}
-          />
-          <div className="relative">
-            <div className="flex justify-between items-center mb-4">
-              <div className="text-[10px] font-semibold uppercase tracking-[0.15em] text-white/85">
-                {cur.name} tier
-              </div>
-              <div className="flex gap-1.5">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    title={i < freezes ? "Streak freeze available" : "Used"}
-                    className="w-[26px] h-[26px] rounded-lg border flex items-center justify-center"
-                    style={{
-                      background:
-                        i < freezes ? "rgba(255,255,255,0.28)" : "rgba(255,255,255,0.1)",
-                      borderColor: "rgba(255,255,255,0.25)",
-                      opacity: i < freezes ? 1 : 0.45,
-                    }}
-                  >
-                    <Snowflake className="w-3.5 h-3.5 text-white" strokeWidth={2} />
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-end gap-3.5">
-              <div>
-                <div className="flex items-baseline gap-2">
-                  <div
-                    key={points}
-                    style={{
-                      fontSize: 58,
-                      fontWeight: 800,
-                      fontFamily: "'Fraunces', Georgia, serif",
-                      letterSpacing: "-0.03em",
-                      lineHeight: 1,
-                      animation: boost ? "pointsPop .6s ease-out" : "none",
-                    }}
-                  >
-                    {points}
-                  </div>
-                  <div className="text-base font-semibold opacity-90">pts</div>
-                </div>
-                <div className="flex items-center gap-3 mt-2.5 text-xs">
-                  <div
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-bold"
-                    style={{ background: "rgba(0,0,0,0.18)" }}
-                  >
-                    <Flame className="w-3 h-3" /> {streak}d streak
-                  </div>
-                  <div className="opacity-85 text-[11px] tabular-nums">
-                    {Math.max(nextTier.from - points, 0)} → {nextTier.name}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tier track */}
-        <div className="bg-card border border-border rounded-[20px] p-4 mb-3.5">
-          <TierTrack points={points} />
-        </div>
-
-        {/* Weekly goal + streak calendar */}
-        <div className="bg-card border border-border rounded-[20px] p-4 mb-3.5 grid gap-3.5" style={{ gridTemplateColumns: "120px 1fr" }}>
-          <WeeklyRing done={weeklyDone} goal={weeklyGoal} />
-          <div className="flex flex-col justify-between">
-            <div>
-              <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-                Weekly goal
-              </div>
-              <div className="text-[13px] text-foreground font-semibold leading-[1.3]">
-                {weeklyDone} of {weeklyGoal} check-ins.
-                <br />
-                <span className="text-muted-foreground font-medium">
-                  Finish by Sunday for +100 bonus.
-                </span>
-              </div>
-            </div>
-            <StreakCalendar />
-          </div>
-        </div>
-
-        {/* Today's quests */}
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
-          Today's quests
-        </div>
-        <div className="bg-card border border-border rounded-[20px] overflow-hidden mb-3.5">
-          {quests.map((q, i) => {
-            const I = q.icon;
-            return (
-              <button
-                key={q.id}
-                onClick={() => !q.done && handleQuest(q.id)}
-                disabled={q.done}
-                className={`w-full flex items-center gap-3 px-4 py-3.5 min-h-[60px] ${
-                  i < quests.length - 1 ? "border-b border-border/70" : ""
-                } ${q.done ? "opacity-60 cursor-default" : "cursor-pointer active:bg-muted/40"}`}
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{
-                    background: q.done
-                      ? "hsl(142 70% 45% / 0.12)"
-                      : "var(--accent-soft, hsl(var(--accent) / 0.1))",
-                    color: q.done ? "#16A34A" : "hsl(var(--accent))",
-                  }}
-                >
-                  <I className="w-4 h-4" strokeWidth={q.done ? 3 : 2} />
-                </div>
-                <div className="flex-1 text-left">
-                  <div
-                    className={`text-sm font-bold text-foreground ${q.done ? "line-through" : ""}`}
-                  >
-                    {q.label}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-0.5">{q.sub}</div>
-                </div>
-                <div
-                  className="text-xs font-bold tabular-nums"
-                  style={{
-                    color: q.done ? "hsl(var(--muted-foreground))" : "hsl(var(--accent))",
-                    fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                  }}
-                >
-                  +{q.pts}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Milestones */}
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
-          Milestones
-        </div>
-        {milestones.map((m, i) => {
-          const active = !m.done && m.progress !== undefined && m.progress < 100;
-          return (
-            <div
-              key={i}
-              className={`bg-card rounded-[18px] p-3.5 mb-2 flex items-center gap-3.5 ${
-                m.done ? "opacity-70" : ""
-              }`}
-              style={{
-                border: active ? "1.5px solid hsl(var(--accent))" : "1px solid hsl(var(--border))",
-              }}
-            >
-              <div
-                className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
-                style={{
-                  background: m.done
-                    ? "hsl(142 70% 45% / 0.12)"
-                    : active
-                    ? "var(--accent-soft, hsl(var(--accent) / 0.1))"
-                    : "hsl(var(--muted))",
-                  color: m.done
-                    ? "#16A34A"
-                    : active
-                    ? "hsl(var(--accent))"
-                    : "hsl(var(--muted-foreground))",
-                }}
-              >
-                {m.done ? (
-                  <Check className="w-5 h-5" strokeWidth={3} />
-                ) : (
-                  <Trophy className="w-5 h-5" strokeWidth={2} />
-                )}
-              </div>
-              <div className="flex-1">
-                <div className="flex justify-between items-baseline">
-                  <div className="text-sm font-bold text-foreground">{m.title}</div>
-                  <div className="text-[11px] text-muted-foreground font-semibold tabular-nums">
-                    {m.pts} pts
-                  </div>
-                </div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{m.desc}</div>
-                {active && (
-                  <div className="h-1 bg-muted rounded-full mt-2 overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-[width] duration-700 bg-accent"
-                      style={{ width: `${Math.min(m.progress!, 100)}%` }}
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-
-        {/* How to earn */}
-        <div className="mt-3.5 bg-muted rounded-[18px] p-4">
-          <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2.5">
-            Earn more
-          </div>
-          {earnings.map((r, i) => {
-            const I = r.icon;
-            return (
-              <div
-                key={i}
-                className={`flex items-center gap-2.5 py-2 ${
-                  i === 0 ? "" : "border-t border-border/60"
-                }`}
-              >
-                <I className="w-4 h-4 text-accent" />
-                <div className="flex-1 text-[13px] text-foreground">{r.l}</div>
-                <div className="text-xs text-accent font-bold tabular-nums">{r.p}</div>
-              </div>
-            );
-          })}
-        </div>
-      </motion.div>
-    </div>
+      <AnimatePresence>
+        {activeCoupon && (
+          <CouponModal milestone={activeCoupon} onClose={() => setActiveCoupon(null)} />
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 

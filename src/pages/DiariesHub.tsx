@@ -70,25 +70,25 @@ const MonthCalendar = ({
   for (let i = 0; i < offset; i++) days.push(null);
   for (let d = 1; d <= daysInMonth; d++) days.push(d);
   return (
-    <div className="bg-card border border-border rounded-[22px] p-4">
-      <div className="flex justify-between items-center mb-3.5">
-        <div className="text-[15px] font-bold text-foreground">{label}</div>
+    <div className="bg-card border border-border rounded-[18px] p-3">
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-[13px] font-bold text-foreground">{label}</div>
         <div className="flex gap-1">
           {[ChevronLeft, ChevronRight].map((I, i) => (
             <button
               key={i}
-              className="w-7 h-7 rounded-lg bg-muted border-0 cursor-pointer flex items-center justify-center text-foreground"
+              className="w-6 h-6 rounded-md bg-muted border-0 cursor-pointer flex items-center justify-center text-foreground"
             >
-              <I className="w-3.5 h-3.5" />
+              <I className="w-3 h-3" />
             </button>
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-[3px]">
         {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
           <div
             key={i}
-            className="text-[10px] font-bold text-center text-muted-foreground py-1"
+            className="text-[9px] font-bold text-center text-muted-foreground py-0.5"
           >
             {d}
           </div>
@@ -101,12 +101,13 @@ const MonthCalendar = ({
           return (
             <div
               key={i}
-              className="aspect-square rounded-[10px] flex flex-col items-center justify-center"
+              className="aspect-square rounded-md flex flex-col items-center justify-center"
               style={{
+                fontSize: 10,
                 background: p
                   ? `rgba(255,107,92,${0.18 + (p / 10) * 0.4})`
                   : "var(--bg-deep)",
-                border: today ? "2px solid hsl(var(--foreground))" : undefined,
+                border: today ? "1.5px solid hsl(var(--foreground))" : undefined,
               }}
             >
               <div
@@ -176,7 +177,9 @@ const DiariesHub = ({
   attackLogs = [],
   checkInLogs = [],
 }: DiariesHubProps) => {
-  const [view, setView] = useState<"cal" | "list">("cal");
+  // List is now the default — calendar was hogging 50% of the screen and
+  // burying diaries below the fold.
+  const [view, setView] = useState<"cal" | "list">("list");
   const isMigraine = diagnosis === "migraine";
   const categories = isMigraine ? migraineDiaryCategories : diaryCategories;
 
@@ -266,6 +269,30 @@ const DiariesHub = ({
           <StatCard v="92%" l="Adherence" c="#16A34A" />
         </motion.div>
 
+        {/* Diary tiles — surfaced ABOVE the calendar so they're accessible
+            without scrolling (was buried below before). */}
+        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-2.5">
+          Log today
+        </div>
+        <div className="grid grid-cols-3 gap-2.5 mb-4">
+          {categories.map((diary, index) => (
+            <DiaryTile
+              key={diary.id}
+              title={diary.title}
+              icon={diary.icon}
+              onClick={() => {
+                const scriptId = diaryCategoryToScript[diary.id];
+                if (scriptId && onOpenNeuraWithScript) {
+                  onOpenNeuraWithScript(scriptId);
+                } else {
+                  onOpenDiary(diary.id);
+                }
+              }}
+              delay={0.03 * index}
+            />
+          ))}
+        </div>
+
         {/* View toggle */}
         <motion.div
           className="flex gap-1.5 mb-3.5 bg-muted p-1 rounded-[14px]"
@@ -334,92 +361,7 @@ const DiariesHub = ({
           )}
         </div>
 
-        {/* Trigger Investigation entry */}
-        <motion.button
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
-          onClick={onOpenTriggerDiary}
-          className="w-full text-left mb-4"
-          style={{
-            background: "linear-gradient(135deg, rgba(27,42,78,0.06) 0%, rgba(124,58,237,0.08) 50%, rgba(59,130,246,0.06) 100%)",
-            border: "1.5px solid rgba(124,58,237,0.22)",
-            borderRadius: 20,
-            padding: "14px 16px",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 14,
-          }}
-        >
-          <div
-            style={{
-              width: 48,
-              height: 48,
-              borderRadius: 15,
-              background: "linear-gradient(135deg, rgba(124,58,237,0.15), rgba(59,130,246,0.12))",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              flexShrink: 0,
-            }}
-          >
-            <FlaskConical style={{ width: 22, height: 22, color: "#7C3AED" }} />
-          </div>
-          <div style={{ flex: 1 }}>
-            <div className="text-[14.5px] font-bold text-foreground mb-0.5">Trigger Investigation</div>
-            <div className="text-[12px] text-muted-foreground">
-              See which factors correlate with your attacks
-            </div>
-          </div>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 4,
-              background: "rgba(232,168,56,0.12)",
-              borderRadius: 8,
-              padding: "3px 7px",
-            }}
-          >
-            <Zap style={{ width: 10, height: 10, color: "#E8A838" }} />
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: "#E8A838",
-                fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-                letterSpacing: "0.06em",
-              }}
-            >
-              NEW
-            </span>
-          </div>
-        </motion.button>
-
-        {/* Diary categories — single-question flows; open Neura script if mapped */}
-        <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-2.5">
-          Log today
-        </div>
-        <div className="grid grid-cols-3 gap-2.5 mb-4">
-          {categories.map((diary, index) => (
-            <DiaryTile
-              key={diary.id}
-              title={diary.title}
-              icon={diary.icon}
-              onClick={() => {
-                const scriptId = diaryCategoryToScript[diary.id];
-                if (scriptId && onOpenNeuraWithScript) {
-                  onOpenNeuraWithScript(scriptId);
-                } else {
-                  // Fallback to legacy single-question DiaryFlow page
-                  onOpenDiary(diary.id);
-                }
-              }}
-              delay={0.03 * index}
-            />
-          ))}
-        </div>
+        {/* Trigger Investigation moved to Home (carousel + correlation module). */}
 
         {/* Export */}
         <button

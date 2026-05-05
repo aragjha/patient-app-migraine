@@ -13,6 +13,7 @@ import {
 interface TriggerDiaryProps {
   onBack: () => void;
   onAskNeura?: () => void;
+  onStartCheckin?: () => void;
 }
 
 // ─── Sub-components ───
@@ -383,15 +384,90 @@ const SectionLabel = ({
   </div>
 );
 
+// ─── Session-0 carousel ───
+
+const TriggerDiscoveryCarousel = ({ sessionCount, onStartCheckin }: { sessionCount: number; onStartCheckin?: () => void }) => {
+  const [page, setPage] = useState(0);
+  const pages = [
+    {
+      icon: "🔍",
+      title: "Neura watches for patterns",
+      body: "Every check-in and attack log adds a data point. Over time, Neura looks for what consistently shows up before your migraines.",
+    },
+    {
+      icon: "📊",
+      title: "Triggers hide in your daily routine",
+      body: `Sleep, caffeine, stress, weather — they interact. Most patterns take 5–10 logs to surface. You've done ${sessionCount} so far.`,
+    },
+    {
+      icon: "🎯",
+      title: "The more you log, the clearer it gets",
+      body: "Most people spot their first pattern after 2 weeks of daily check-ins. Keep going.",
+      cta: "Start today's check-in",
+    },
+  ];
+
+  return (
+    <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "24px 20px 48px" }}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={page}
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -30 }}
+          transition={{ duration: 0.25 }}
+          style={{ width: "100%", maxWidth: 360, textAlign: "center" }}
+        >
+          <div style={{ fontSize: 56, marginBottom: 20 }}>{pages[page].icon}</div>
+          <h2 style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 26, fontWeight: 600, color: "hsl(var(--foreground))", margin: "0 0 12px", lineHeight: 1.2 }}>
+            {pages[page].title}
+          </h2>
+          <p style={{ fontSize: 14.5, color: "hsl(var(--muted-foreground))", lineHeight: 1.6, margin: "0 0 32px" }}>
+            {pages[page].body}
+          </p>
+          {page < 2 ? (
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              style={{ padding: "14px 40px", borderRadius: 26, border: 0, cursor: "pointer", color: "white", fontSize: 15, fontWeight: 700, background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)", boxShadow: "0 8px 22px rgba(59,130,246,0.32)" }}
+            >
+              Next →
+            </button>
+          ) : (
+            <button
+              onClick={onStartCheckin}
+              style={{ padding: "14px 40px", borderRadius: 26, border: 0, cursor: "pointer", color: "white", fontSize: 15, fontWeight: 700, background: "linear-gradient(135deg, #1B2A4E 0%, #3B82F6 100%)", boxShadow: "0 8px 22px rgba(59,130,246,0.32)" }}
+            >
+              {pages[page].cta}
+            </button>
+          )}
+        </motion.div>
+      </AnimatePresence>
+      {/* Dots */}
+      <div style={{ display: "flex", gap: 6, marginTop: 32 }}>
+        {pages.map((_, i) => (
+          <button
+            key={i}
+            onClick={() => setPage(i)}
+            style={{ width: i === page ? 20 : 6, height: 6, borderRadius: 3, border: 0, cursor: "pointer", background: i === page ? "#3B82F6" : "hsl(var(--border))", transition: "all 0.25s", padding: 0 }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main component ───
 
-const TriggerDiary = ({ onBack, onAskNeura }: TriggerDiaryProps) => {
+const TriggerDiary = ({ onBack, onAskNeura, onStartCheckin }: TriggerDiaryProps) => {
   const [correlations, setCorrelations] = useState<TriggerCorrelation[]>([]);
   const [sessionCount, setSessionCount] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
-    ensureDemoData();
+    // Only seed demo data when explicitly in demo mode — otherwise carousel gating breaks
+    if (localStorage.getItem("nc-demo-mode") === "true") {
+      ensureDemoData();
+    }
     const sessions = getStoredSessions();
     setSessionCount(sessions.length);
     setCorrelations(computeCorrelations(sessions));
@@ -472,8 +548,13 @@ const TriggerDiary = ({ onBack, onAskNeura }: TriggerDiaryProps) => {
         </div>
       </div>
 
-      {/* Stats strip */}
-      <motion.div
+      {/* Session-0: show discovery carousel instead of correlations */}
+      {sessionCount < 3 && (
+        <TriggerDiscoveryCarousel sessionCount={sessionCount} onStartCheckin={onStartCheckin ?? onAskNeura} />
+      )}
+
+      {/* Stats strip + full content (only shown when enough sessions) */}
+      {sessionCount >= 3 && (<><motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.08 }}
@@ -713,7 +794,7 @@ const TriggerDiary = ({ onBack, onAskNeura }: TriggerDiaryProps) => {
           <MessageCircle style={{ width: 16, height: 16 }} />
           Tell Neura about today
         </button>
-      </div>
+      </div></>)}
     </div>
   );
 };

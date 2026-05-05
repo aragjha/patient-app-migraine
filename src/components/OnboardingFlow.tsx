@@ -515,31 +515,22 @@ const OnboardingFlow = ({ onComplete, onSkip, onAddMedications, initialState, on
     );
   }
 
-  // After diagnosis selection, if migraine → use the new streamlined onboarding
+  // After diagnosis selection, if migraine → use the streamlined 7-step
+  // onboarding. Per spec (parsed-floating-newell.md): onboarding ends at
+  // gratification → home. Medication setup is a HOME-screen action, not a
+  // detour — wiring it into onboarding caused an infinite loop because
+  // medication-onboarding-from-flow returned to "onboarding".
   if (!showDiagnosisQuestion && diagnosis === "migraine") {
     return (
       <MigraineOnboarding
         onComplete={(profile) => {
           try {
-            localStorage.setItem("nc-migraine-profile", JSON.stringify(profile));
+            localStorage.setItem(
+              "nc-migraine-profile",
+              JSON.stringify(profile),
+            );
           } catch {}
           onComplete("migraine");
-        }}
-        onAddMedications={(profile) => {
-          try {
-            localStorage.setItem("nc-migraine-profile", JSON.stringify(profile));
-          } catch {}
-          // Route into med onboarding using existing onAddMedications plumbing.
-          if (onAddMedications) {
-            onAddMedications({
-              phaseIndex: 0,
-              questionIndex: 0,
-              answers: {},
-              diagnosis: "migraine",
-            });
-          } else {
-            onComplete("migraine");
-          }
         }}
         onSkip={onSkip}
         onBack={() => setShowDiagnosisQuestion(true)}

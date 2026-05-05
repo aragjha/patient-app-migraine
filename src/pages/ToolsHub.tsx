@@ -12,11 +12,11 @@ interface ToolsHubProps {
   onOpenAppointments: () => void;
 }
 
+// Medications intentionally omitted — entry point lives on Home (per spec).
 const tools = [
   { id: "diaries", title: "Diaries", subtitle: "Track daily symptoms", icon: "📓" },
-  { id: "medication", title: "Medication Log", subtitle: "Track & log your meds", icon: "💊" },
   { id: "appointments", title: "Appointments", subtitle: "Track & prep for visits", icon: "📅" },
-  { id: "chat", title: "Talk to Neura", subtitle: "Ask anything about PD", icon: "💬" },
+  { id: "chat", title: "Talk to Neura", subtitle: "Ask anything about migraines", icon: "💬" },
   { id: "activity", title: "Activity Tracker", subtitle: "Log exercise & movement", icon: "🏃", comingSoon: true },
 ];
 

@@ -111,6 +111,33 @@ export const phrasePool: Record<string, string[]> = {
     "Tracked.",
   ],
 
+  // Daily discovery (1-min check-in)
+  "discovery.open": [
+    "Hey — 60 seconds. Let's see how today went.",
+    "Quick check-in time. Ready?",
+    "One minute. Let's build your picture.",
+  ],
+  "discovery.lifestyle": [
+    "How many hours did you sleep last night?",
+    "Sleep check — how'd you do last night?",
+    "How was your sleep?",
+  ],
+  "discovery.headPain": [
+    "Any head pain today?",
+    "How's your head been today?",
+    "Head pain check — anything to note?",
+  ],
+  "discovery.quickFactor": [
+    "How's your mood been?",
+    "How stressed were you today?",
+    "Any tension in your neck or shoulders?",
+  ],
+  "discovery.close": [
+    "Done. You're building a real picture.",
+    "That's it — streak updated. Keep it going.",
+    "Logged. Patterns take shape with every check-in.",
+  ],
+
   // Generic acknowledgements
   "ack.gotIt": ["Got it.", "Noted.", "Okay.", "Logged.", "Thanks."],
   "ack.anythingElse": ["Anything else?", "More to log?", "Keep going or done?"],

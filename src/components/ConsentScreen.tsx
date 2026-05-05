@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, X } from "lucide-react";
+import { Check, ChevronLeft, Lock, X } from "lucide-react";
 import { consentFullForm, termsShortForm } from "@/data/consentContent";
 
 interface ConsentScreenProps {
@@ -53,14 +53,13 @@ const ConsentRow = ({ locked, checked, onToggle, title, desc }: ConsentRowProps)
 
 const ConsentScreen = ({ onConsent, onSignOut, onBack }: ConsentScreenProps) => {
   const [sheet, setSheet] = useState<"consent" | "terms" | null>(null);
-  const [research, setResearch] = useState(true);
   const [marketing, setMarketing] = useState(false);
 
   const handleConsent = () => {
     localStorage.setItem("nc-consent-at", new Date().toISOString());
     localStorage.setItem(
       "nc-consent-prefs",
-      JSON.stringify({ essential: true, research, marketing }),
+      JSON.stringify({ essential: true, marketing }),
     );
     onConsent();
   };
@@ -104,18 +103,31 @@ const ConsentScreen = ({ onConsent, onSignOut, onBack }: ConsentScreenProps) => 
             NeuroCare is HIPAA-compliant. We never sell your information. You can change these anytime in Settings.
           </div>
 
+          {/* PHI notice card */}
+          <div
+            className="flex gap-3 p-4 rounded-[16px] mb-5"
+            style={{ background: "rgba(59,130,246,0.08)", border: "1px solid rgba(59,130,246,0.2)" }}
+          >
+            <div
+              className="shrink-0 w-9 h-9 rounded-[10px] flex items-center justify-center"
+              style={{ background: "rgba(59,130,246,0.15)" }}
+            >
+              <Lock className="w-4 h-4" style={{ color: "#3B82F6" }} />
+            </div>
+            <div>
+              <div className="text-sm font-bold text-foreground mb-1">Protected Health Information</div>
+              <div className="text-[12.5px] leading-[1.5] text-muted-foreground">
+                Migraine logs, medication data, and symptom history are Protected Health Information under HIPAA. Stored securely, shared only as you direct.
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col gap-2.5">
             <ConsentRow
               locked
               checked
               title="Essential app data"
-              desc="Symptoms, logs, medication history — used to power your dashboard and AI companion. Stays on your account."
-            />
-            <ConsentRow
-              checked={research}
-              onToggle={() => setResearch((v) => !v)}
-              title="De-identified research"
-              desc="Help us understand migraine patterns across users. Never tied to your identity."
+              desc="Symptoms, logs, medications. Powers your dashboard."
             />
             <ConsentRow
               checked={marketing}

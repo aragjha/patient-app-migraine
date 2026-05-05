@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { usePersistedState } from "@/hooks/usePersistedState";
+import { getStreakData, seedStreakDemoData } from "@/data/streakEngine";
+import { ensureDemoData } from "@/data/triggerIdentificationEngine";
 import {
   Sun,
   Moon,
@@ -32,6 +34,7 @@ interface ProfilePageProps {
   onRestartOnboarding?: () => void;
   onOpenNeura?: () => void;
   onOpenDiary?: () => void;
+  onOpenReport?: () => void;
   onLog?: () => void;
 }
 
@@ -128,6 +131,7 @@ const ProfilePage = ({
   onRestartOnboarding,
   onOpenNeura,
   onOpenDiary,
+  onOpenReport,
   onLog,
 }: ProfilePageProps) => {
   const [isDark, setIsDark] = useState(() =>
@@ -155,6 +159,42 @@ const ProfilePage = ({
     false,
   );
   const [streak] = usePersistedState("nc-streak", 12);
+  const [liveStreak, setLiveStreak] = useState(streak);
+  const [attackCount, setAttackCount] = useState(0);
+  const [daysActive, setDaysActive] = useState(0);
+  const [isDemoMode, setIsDemoMode] = useState(() => localStorage.getItem("nc-demo-mode") === "true");
+
+  useEffect(() => {
+    const sd = getStreakData();
+    setLiveStreak(sd.currentStreak);
+    setAttackCount(sd.activities.filter((a) => a.type === "attack-log").length);
+    const uniqueDays = new Set(sd.activities.map((a) => a.date)).size;
+    setDaysActive(uniqueDays);
+  }, []);
+
+  const activateDemo = () => {
+    localStorage.setItem("nc-demo-mode", "true");
+    // Seed all demo data
+    seedStreakDemoData();
+    ensureDemoData();
+    // Mark onboarding complete with migraine diagnosis
+    localStorage.setItem("nc-onboarding-complete", "true");
+    localStorage.setItem("nc-migraine-profile", JSON.stringify({ diagnosis: "migraine", sex: "female", menstrualEnabled: true, goals: ["triggers", "relief"], frequency: "15plus", painLevel: 7 }));
+    localStorage.setItem("nc-consent-at", new Date().toISOString());
+    localStorage.setItem("nc-last-attack-dismissed", "true");
+    localStorage.setItem("nc-guide-shown", "true");
+    setIsDemoMode(true);
+    window.location.reload();
+  };
+
+  const exitDemo = () => {
+    // Clear the full nc-* namespace so the user returns to a clean first-time state
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith("nc-"))
+      .forEach((k) => localStorage.removeItem(k));
+    setIsDemoMode(false);
+    window.location.reload();
+  };
 
   const toggleDarkMode = () => {
     const next = !isDark;
@@ -334,9 +374,63 @@ const ProfilePage = ({
                   borderRadius: 999,
                 }}
               >
-                {streak}d streak
+                {liveStreak}d streak
               </span>
             </div>
+          </div>
+        </div>
+
+        {/* Stats row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 20 }}>
+          {[
+            { label: "Attacks", value: attackCount },
+            { label: "Day streak", value: `${liveStreak}🔥` },
+            { label: "Days active", value: daysActive },
+          ].map(({ label, value }) => (
+            <div key={label} style={{ background: "hsl(var(--card))", border: "1.5px solid hsl(var(--border))", borderRadius: 16, padding: "12px 10px", textAlign: "center" }}>
+              <div style={{ fontFamily: "'Fraunces', Georgia, serif", fontSize: 20, fontWeight: 700, color: "hsl(var(--foreground))", marginBottom: 2 }}>{value}</div>
+              <div style={{ fontSize: 11, color: "hsl(var(--muted-foreground))" }}>{label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* My data quick links */}
+        <div style={{ background: "hsl(var(--card))", border: "1.5px solid hsl(var(--border))", borderRadius: 20, overflow: "hidden", marginBottom: 16 }}>
+          {[
+            { label: "Generate report", onClick: onOpenReport },
+            { label: "View history", onClick: onOpenDiary },
+            { label: "Rewards & streak", onClick: onOpenRewards },
+          ].map(({ label, onClick }, i) => (
+            <button
+              key={label}
+              onClick={onClick}
+              style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 16px", borderTop: i > 0 ? "1px solid hsl(var(--border))" : "none", background: "none", border: "none", cursor: "pointer", textAlign: "left" }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600, color: "hsl(var(--foreground))" }}>{label}</span>
+              <span style={{ fontSize: 16, color: "hsl(var(--muted-foreground))" }}>›</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Demo mode */}
+        <div style={{ marginBottom: 20 }}>
+          {isDemoMode ? (
+            <button
+              onClick={exitDemo}
+              style={{ width: "100%", height: 48, borderRadius: 24, border: "1.5px solid hsl(var(--border))", cursor: "pointer", color: "hsl(var(--muted-foreground))", fontSize: 14, fontWeight: 600, background: "hsl(var(--card))" }}
+            >
+              Exit demo mode
+            </button>
+          ) : (
+            <button
+              onClick={activateDemo}
+              style={{ width: "100%", height: 48, borderRadius: 24, border: "1.5px solid rgba(59,130,246,0.4)", cursor: "pointer", color: "#3B82F6", fontSize: 14, fontWeight: 700, background: "rgba(59,130,246,0.07)" }}
+            >
+              Try Demo Mode
+            </button>
+          )}
+          <div style={{ fontSize: 11, textAlign: "center", color: "hsl(var(--muted-foreground))", marginTop: 6 }}>
+            {isDemoMode ? "Demo mode active — pre-filled with sample data" : "Fills app with sample data for testing & demos"}
           </div>
         </div>
 
@@ -522,6 +616,11 @@ const ProfilePage = ({
           <LogOut className="w-[14px] h-[14px]" />
           Log out
         </button>
+
+        {/* Disclaimer */}
+        <div style={{ marginTop: 16, padding: "12px 14px", background: "hsl(var(--muted)/0.5)", borderRadius: 14, fontSize: 12, color: "hsl(var(--muted-foreground))", lineHeight: 1.55, textAlign: "center" }}>
+          Neura surfaces patterns to help you and your care team. It is not a substitute for medical advice.
+        </div>
       </motion.div>
 
       <BottomNav

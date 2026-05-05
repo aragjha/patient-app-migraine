@@ -226,3 +226,63 @@ export function briefAnswerForDerailment(input: string): string {
 
   return "Good question — I'll pull that up after we finish logging.";
 }
+
+// ─── Guardrail: refuse non-health / off-topic questions ───────────────────────
+// Matches obvious off-topic categories (sports, weather, jokes, politics, code,
+// general trivia). NeuroCare's job is migraine support — politely redirect.
+const offTopicPatterns: Array<{ tag: string; rx: RegExp }> = [
+  { tag: "weather", rx: /\b(weather|forecast|rain|snow|temperature outside|how hot|how cold)\b/ },
+  { tag: "sports", rx: /\b(score|football|cricket|nba|nfl|fifa|world cup|champions league|tennis|match)\b/ },
+  { tag: "politics", rx: /\b(president|election|trump|biden|modi|vote|prime minister|politics)\b/ },
+  { tag: "trivia", rx: /\b(capital of|tallest|fastest car|biggest country|how many planets|history of)\b/ },
+  { tag: "jokes", rx: /\b(joke|tell me a joke|funny|riddle|pun)\b/ },
+  { tag: "code", rx: /\b(write code|python|javascript|function|fix this bug|stack overflow)\b/ },
+  { tag: "celebrity", rx: /\b(taylor swift|beyonce|kanye|messi|ronaldo|elon|musk)\b/ },
+  { tag: "math", rx: /\b(\d+\s*[\+\-\*\/]\s*\d+|calculate|solve)\b/ },
+  { tag: "time", rx: /\b(what time is it|current time|date today)\b/ },
+  { tag: "navigation", rx: /\b(how do i get to|directions|nearest restaurant|find a coffee)\b/ },
+  { tag: "shopping", rx: /\b(buy|order|amazon|cheapest|deal on)\b/ },
+];
+
+const HEALTH_ALLOWLIST = /\b(migraine|headache|aura|nausea|sleep|stress|caffeine|water|hydration|trigger|medication|med|pill|topiramate|sumatriptan|ibuprofen|aspirin|relief|pain|symptom|attack|streak|reward|profile|doctor|neurologist|menstrual|period|hormonal|appointment)\b/;
+
+export function isOffTopic(input: string): boolean {
+  const query = input.toLowerCase().trim();
+  if (HEALTH_ALLOWLIST.test(query)) return false;
+  return offTopicPatterns.some((p) => p.rx.test(query));
+}
+
+/** Polite refusal + redirect for off-topic queries. */
+export function guardrailResponse(input: string): string {
+  const query = input.toLowerCase().trim();
+  const tag = offTopicPatterns.find((p) => p.rx.test(query))?.tag ?? "off-topic";
+
+  const redirects: Record<string, string> = {
+    weather:
+      "I stay focused on your migraine care — I won't pull weather forecasts. But weather shifts are a real trigger; want to log today as a pressure-change day?",
+    sports:
+      "I'm here for your migraine journey, not scores. Want to do a quick check-in or log how you're feeling?",
+    politics:
+      "I keep myself out of politics. Let's stay on your health — anything you want to track today?",
+    trivia:
+      "That's outside what I help with. I focus on patterns in your migraines — want me to pull up your last attack?",
+    jokes:
+      "I'll skip the jokes — let's keep this useful. Want a quick check-in or a relief session?",
+    code:
+      "I'm not built for code. But I can help you spot patterns in your migraines — want to look at your triggers?",
+    celebrity:
+      "Not my lane. I'm here for your headaches — want to do today's check-in?",
+    math:
+      "I'm not a calculator. Want me to summarize how your week's been pain-wise?",
+    time:
+      "I don't track wall-clock time. But I do track your migraine timeline — want to see your last attack?",
+    navigation:
+      "I can't help with directions — I'm a migraine companion. Want to log how you're feeling?",
+    shopping:
+      "Not what I do. I help you understand your migraines — should we run a quick check-in?",
+    "off-topic":
+      "That's outside what I help with. I'm focused on your migraine care — want to log a headache or do a quick check-in?",
+  };
+
+  return redirects[tag] ?? redirects["off-topic"];
+}

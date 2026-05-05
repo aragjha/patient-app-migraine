@@ -4,6 +4,7 @@ import { ChevronLeft } from "lucide-react";
 import PainSlider from "@/components/PainSlider";
 import GratificationScreen from "@/components/GratificationScreen";
 import { HeadacheLog } from "@/types/logs";
+import { recordActivity } from "@/data/streakEngine";
 
 interface PostMigraineFlowProps {
   activeMigraine: {
@@ -88,6 +89,7 @@ const PostMigraineFlow = ({ activeMigraine, onComplete, onBack }: PostMigraineFl
         lingeringSymptoms: lingering.filter((l) => l !== "none"),
         status: "ended",
       };
+      recordActivity("attack-log");
       onComplete(patch);
       setShowComplete(true);
     } else {
